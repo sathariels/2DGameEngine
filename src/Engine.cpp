@@ -1,6 +1,8 @@
 #include "Engine.h"
 #include <iostream>
 #include <thread>
+#include "InputManager.h"
+
 
 Engine::Engine() : window(nullptr), isRunning(false) {}
 
@@ -32,19 +34,22 @@ bool Engine::Init() {
     return true;
 }
 
+#include "InputManager.h"
+
 void Engine::Run() {
     using clock = std::chrono::high_resolution_clock;
     const std::chrono::milliseconds frameDuration(1000 / targetFPS);
 
-    SDL_Event event;
+    InputManager input;
 
     while (isRunning) {
         auto frameStart = clock::now();
 
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                isRunning = false;
-            }
+        // 🔁 Input handling moved to InputManager
+        input.Update();
+
+        if (input.IsKeyPressed(SDLK_ESCAPE)) {
+            isRunning = false;
         }
 
         // TODO: Update game logic and render here
@@ -56,6 +61,7 @@ void Engine::Run() {
         }
     }
 }
+
 
 void Engine::Shutdown() {
     if (window) {
