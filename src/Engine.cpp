@@ -40,19 +40,12 @@ void Engine::Run() {
     using clock = std::chrono::high_resolution_clock;
     const std::chrono::milliseconds frameDuration(1000 / targetFPS);
 
-    InputManager input;
-
     while (isRunning) {
         auto frameStart = clock::now();
 
-        // 🔁 Input handling moved to InputManager
-        input.Update();
-
-        if (input.IsKeyPressed(SDLK_ESCAPE)) {
-            isRunning = false;
-        }
-
-        // TODO: Update game logic and render here
+        HandleEvents();           // 👈 Clean input section
+        Update(frameDuration.count() / 1000.0f);  // 👈 Pass delta time in seconds
+        Render();                 // 👈 Placeholder for now
 
         auto frameEnd = clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(frameEnd - frameStart);
@@ -61,6 +54,31 @@ void Engine::Run() {
         }
     }
 }
+
+void Engine::HandleEvents() {
+    input.Update(); // from your InputManager
+
+    if (input.IsKeyPressed(SDLK_ESCAPE)) {
+        isRunning = false;
+    }
+}
+void Engine::Update(float deltaTime) {
+    // TODO: Game logic (movement, physics, etc.)
+    // Example: player.position += velocity * deltaTime;
+}
+void Engine::Render() {
+    // TODO: Clear screen, draw everything, present frame
+    // SDL_RenderClear(renderer);
+    // SDL_RenderCopy(renderer, ...);
+    // SDL_RenderPresent(renderer);
+}
+
+
+
+
+
+
+
 
 
 void Engine::Shutdown() {

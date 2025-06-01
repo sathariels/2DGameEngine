@@ -2,6 +2,8 @@
 #define ENGINE_H
 
 #include <SDL2/SDL.h>
+#include "InputManager.h"  // ✅ Add this line!
+
 #include <chrono>
 
 class Engine {
@@ -12,9 +14,15 @@ public:
     bool Init();
     void Run();
     void Shutdown();
+    void HandleEvents();
+    void Update(float deltaTime);
+    void Render();
+
 
 private:
     SDL_Window* window;
+    SDL_Renderer* renderer;  // (optional, for future drawing)
+    InputManager input;
     bool isRunning;
 
     const int windowWidth = 800;
