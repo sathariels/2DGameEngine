@@ -29,6 +29,11 @@ bool Engine::Init() {
         std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
         return false;
     }
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        std::cerr << "SDL_CreateRenderer Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
 
     isRunning = true;
     return true;
@@ -67,10 +72,16 @@ void Engine::Update(float deltaTime) {
     // Example: player.position += velocity * deltaTime;
 }
 void Engine::Render() {
-    // TODO: Clear screen, draw everything, present frame
-    // SDL_RenderClear(renderer);
-    // SDL_RenderCopy(renderer, ...);
-    // SDL_RenderPresent(renderer);
+    // Set background color: (R, G, B, A)
+    SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255); // Dark blue/gray
+    SDL_RenderClear(renderer);
+
+    // Draw a red rectangle
+    SDL_Rect rect = { 100, 100, 200, 150 };
+    SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255); // Red
+    SDL_RenderFillRect(renderer, &rect);
+
+    SDL_RenderPresent(renderer);
 }
 
 
@@ -81,7 +92,13 @@ void Engine::Render() {
 
 
 
+
 void Engine::Shutdown() {
+    if (renderer) {
+        SDL_DestroyRenderer(renderer);
+        renderer = nullptr;
+    }
+
     if (window) {
         SDL_DestroyWindow(window);
         window = nullptr;
