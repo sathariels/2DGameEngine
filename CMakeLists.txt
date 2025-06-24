@@ -14,8 +14,15 @@ file(GLOB_RECURSE SRC_FILES "src/*.cpp")
 add_executable(2DGameEngine ${SRC_FILES}
         src/Engine.cpp
         src/InputManager.cpp
+        src/GameObject.cpp
+        src/Component.cpp
+        src/Transform.cpp
+        src/main.cpp
         include/Engine.h
         include/InputManager.h
+        include/GameObject.h
+        include/Component.h
+        include/Transform.h
 )
 target_include_directories(2DGameEngine PRIVATE include)
 target_link_libraries(2DGameEngine ${SDL2_LIBRARIES})

@@ -2,9 +2,10 @@
 #define ENGINE_H
 
 #include <SDL2/SDL.h>
-#include "InputManager.h"  // ✅ Add this line!
-
-#include <chrono>
+#include <vector>
+#include <memory>
+#include "InputManager.h"
+#include "GameObject.h"
 
 class Engine {
 public:
@@ -18,16 +19,20 @@ public:
     void Update(float deltaTime);
     void Render();
 
-
 private:
     SDL_Window* window;
-    SDL_Renderer* renderer;  // (optional, for future drawing)
+    SDL_Renderer* renderer;
     InputManager input;
     bool isRunning;
 
     const int windowWidth = 800;
     const int windowHeight = 600;
     const int targetFPS = 60;
+
+    // GameObject system
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
+    void CreateTestObjects();
+    void RenderGameObject(GameObject* gameObject);
 };
 
-#endif
+#endif // ENGINE_H

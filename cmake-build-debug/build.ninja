@@ -49,6 +49,13 @@ cmake_ninja_workdir = /Users/sathariels/CLionProjects/2DGameEngine/cmake-build-d
 
 build cmake_object_order_depends_target_2DGameEngine: phony || .
 
+build CMakeFiles/2DGameEngine.dir/src/Component.cpp.o: CXX_COMPILER__2DGameEngine_unscanned_Debug /Users/sathariels/CLionProjects/2DGameEngine/src/Component.cpp || cmake_object_order_depends_target_2DGameEngine
+  DEP_FILE = CMakeFiles/2DGameEngine.dir/src/Component.cpp.o.d
+  FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -fcolor-diagnostics
+  INCLUDES = -I/opt/homebrew/Cellar/sdl2/2.32.6/include -I/Users/sathariels/CLionProjects/2DGameEngine/include -isystem /opt/homebrew/Cellar/sdl2/2.32.6/include/SDL2
+  OBJECT_DIR = CMakeFiles/2DGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/2DGameEngine.dir/src
+
 build CMakeFiles/2DGameEngine.dir/src/Engine.cpp.o: CXX_COMPILER__2DGameEngine_unscanned_Debug /Users/sathariels/CLionProjects/2DGameEngine/src/Engine.cpp || cmake_object_order_depends_target_2DGameEngine
   DEP_FILE = CMakeFiles/2DGameEngine.dir/src/Engine.cpp.o.d
   FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -fcolor-diagnostics
@@ -56,8 +63,22 @@ build CMakeFiles/2DGameEngine.dir/src/Engine.cpp.o: CXX_COMPILER__2DGameEngine_u
   OBJECT_DIR = CMakeFiles/2DGameEngine.dir
   OBJECT_FILE_DIR = CMakeFiles/2DGameEngine.dir/src
 
+build CMakeFiles/2DGameEngine.dir/src/GameObject.cpp.o: CXX_COMPILER__2DGameEngine_unscanned_Debug /Users/sathariels/CLionProjects/2DGameEngine/src/GameObject.cpp || cmake_object_order_depends_target_2DGameEngine
+  DEP_FILE = CMakeFiles/2DGameEngine.dir/src/GameObject.cpp.o.d
+  FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -fcolor-diagnostics
+  INCLUDES = -I/opt/homebrew/Cellar/sdl2/2.32.6/include -I/Users/sathariels/CLionProjects/2DGameEngine/include -isystem /opt/homebrew/Cellar/sdl2/2.32.6/include/SDL2
+  OBJECT_DIR = CMakeFiles/2DGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/2DGameEngine.dir/src
+
 build CMakeFiles/2DGameEngine.dir/src/InputManager.cpp.o: CXX_COMPILER__2DGameEngine_unscanned_Debug /Users/sathariels/CLionProjects/2DGameEngine/src/InputManager.cpp || cmake_object_order_depends_target_2DGameEngine
   DEP_FILE = CMakeFiles/2DGameEngine.dir/src/InputManager.cpp.o.d
+  FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -fcolor-diagnostics
+  INCLUDES = -I/opt/homebrew/Cellar/sdl2/2.32.6/include -I/Users/sathariels/CLionProjects/2DGameEngine/include -isystem /opt/homebrew/Cellar/sdl2/2.32.6/include/SDL2
+  OBJECT_DIR = CMakeFiles/2DGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/2DGameEngine.dir/src
+
+build CMakeFiles/2DGameEngine.dir/src/Transform.cpp.o: CXX_COMPILER__2DGameEngine_unscanned_Debug /Users/sathariels/CLionProjects/2DGameEngine/src/Transform.cpp || cmake_object_order_depends_target_2DGameEngine
+  DEP_FILE = CMakeFiles/2DGameEngine.dir/src/Transform.cpp.o.d
   FLAGS = -g -std=gnu++20 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk -fcolor-diagnostics
   INCLUDES = -I/opt/homebrew/Cellar/sdl2/2.32.6/include -I/Users/sathariels/CLionProjects/2DGameEngine/include -isystem /opt/homebrew/Cellar/sdl2/2.32.6/include/SDL2
   OBJECT_DIR = CMakeFiles/2DGameEngine.dir
@@ -78,7 +99,7 @@ build CMakeFiles/2DGameEngine.dir/src/main.cpp.o: CXX_COMPILER__2DGameEngine_uns
 #############################################
 # Link the executable 2DGameEngine
 
-build 2DGameEngine: CXX_EXECUTABLE_LINKER__2DGameEngine_Debug CMakeFiles/2DGameEngine.dir/src/Engine.cpp.o CMakeFiles/2DGameEngine.dir/src/InputManager.cpp.o CMakeFiles/2DGameEngine.dir/src/main.cpp.o | /opt/homebrew/Cellar/sdl2/2.32.6/lib/libSDL2.dylib
+build 2DGameEngine: CXX_EXECUTABLE_LINKER__2DGameEngine_Debug CMakeFiles/2DGameEngine.dir/src/Component.cpp.o CMakeFiles/2DGameEngine.dir/src/Engine.cpp.o CMakeFiles/2DGameEngine.dir/src/GameObject.cpp.o CMakeFiles/2DGameEngine.dir/src/InputManager.cpp.o CMakeFiles/2DGameEngine.dir/src/Transform.cpp.o CMakeFiles/2DGameEngine.dir/src/main.cpp.o | /opt/homebrew/Cellar/sdl2/2.32.6/lib/libSDL2.dylib
   FLAGS = -g -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.1.sdk
   LINK_LIBRARIES = -Wl,-rpath,/opt/homebrew/Cellar/sdl2/2.32.6/lib  /opt/homebrew/Cellar/sdl2/2.32.6/lib/libSDL2.dylib
   LINK_PATH = -L/opt/homebrew/Cellar/sdl2/2.32.6/lib
