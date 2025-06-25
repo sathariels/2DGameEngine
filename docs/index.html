@@ -358,37 +358,224 @@
             resize: vertical;
         }
 
-        /* Responsive */
+        /* Mobile Responsive */
         @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
             .header {
                 padding: 15px;
+                flex-direction: column;
+                gap: 10px;
+                background: rgba(0, 0, 0, 0.9);
+                backdrop-filter: blur(10px);
+                border-radius: 0 0 12px 12px;
+                margin: 0 10px;
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+            }
+
+            .hero {
+                padding: 0 20px;
+                text-align: center;
             }
 
             .hero-title {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
+                line-height: 1.2;
+                margin-bottom: 15px;
+            }
+
+            .hero-subtitle {
+                font-size: 1rem;
+                margin-bottom: 25px;
+                padding: 0 10px;
+            }
+
+            .cta-button {
+                padding: 12px 24px;
+                font-size: 1rem;
+                width: auto;
+                min-width: 200px;
             }
 
             .section {
-                padding: 60px 0;
+                padding: 50px 0;
             }
 
             .section-title {
-                font-size: 2rem;
+                font-size: 1.8rem;
+                margin-bottom: 30px;
+                padding: 0 10px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .feature-card {
+                padding: 20px;
+                margin: 0 10px;
             }
 
             .contact-links {
                 flex-direction: column;
+                gap: 15px;
                 align-items: center;
+                padding: 0 20px;
+            }
+
+            .contact-link {
+                width: 100%;
+                max-width: 250px;
+                text-align: center;
+                padding: 15px 20px;
+                font-size: 1.1rem;
             }
 
             .demo-frame {
-                height: 300px;
+                height: 250px;
+                margin: 15px 0;
+            }
+
+            .demo-container {
+                padding: 20px;
+                margin: 0 10px;
+            }
+
+            .video-container {
+                margin: 0 10px 20px 10px;
+            }
+
+            .video-description {
+                font-size: 1rem;
+                padding: 0 15px;
+            }
+
+            .code-block {
+                font-size: 0.8rem;
+                padding: 15px;
+                margin: 15px 10px;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+
+            .feature-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.3rem;
+            }
+
+            .feature-title {
+                font-size: 1.2rem;
+            }
+
+            .feature-description {
+                font-size: 0.95rem;
+            }
+
+            /* Better button spacing on mobile */
+            .cta-button:not(:last-child) {
+                margin-bottom: 10px;
+            }
+
+            /* Improve text readability on mobile */
+            .section-content p {
+                font-size: 1rem;
+                line-height: 1.7;
+                margin-bottom: 20px;
+            }
+        }
+
+        /* Extra small screens */
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 1.8rem;
+            }
+
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+            }
+
+            .cta-button {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+                min-width: 180px;
+            }
+
+            .feature-card {
+                padding: 15px;
+            }
+
+            .demo-frame {
+                height: 200px;
+            }
+
+            .contact-link {
+                font-size: 1rem;
+                padding: 12px 16px;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .hero {
+                height: 100vh;
+                padding: 80px 20px 20px;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .section {
+                padding: 40px 0;
             }
         }
 
         /* Smooth scrolling */
         html {
             scroll-behavior: smooth;
+        }
+
+        /* Touch-friendly interactions */
+        @media (hover: none) and (pointer: coarse) {
+            .cta-button:hover,
+            .contact-link:hover,
+            .feature-card:hover,
+            .site-brand:hover,
+            .theme-toggle:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            .cta-button:active,
+            .contact-link:active {
+                transform: scale(0.95);
+                transition: transform 0.1s ease;
+            }
+
+            .feature-card {
+                transition: none;
+            }
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            select:focus,
+            textarea:focus,
+            input:focus {
+                font-size: 16px;
+            }
         }
 
         /* Loading animation */
@@ -718,17 +905,68 @@ make -j4
             });
         });
 
-        // Add parallax effect to hero section
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
-            const hero = document.querySelector('.hero');
-            const heroVideo = document.querySelector('.hero-video');
+        // Add touch event handling for better mobile interaction
+        function addTouchSupport() {
+            const buttons = document.querySelectorAll('.cta-button, .contact-link');
             
-            if (hero && heroVideo) {
-                const rate = scrolled * -0.5;
-                heroVideo.style.transform = `translateY(${rate}px)`;
+            buttons.forEach(button => {
+                button.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.95)';
+                }, { passive: true });
+                
+                button.addEventListener('touchend', function() {
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 150);
+                }, { passive: true });
+            });
+        }
+
+        // Optimize scroll performance on mobile
+        let ticking = false;
+        function optimizedScroll() {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    const scrolled = window.pageYOffset;
+                    const hero = document.querySelector('.hero');
+                    const heroVideo = document.querySelector('.hero-video');
+                    
+                    if (hero && heroVideo && window.innerWidth > 768) {
+                        const rate = scrolled * -0.3; // Reduced parallax on mobile
+                        heroVideo.style.transform = `translateY(${rate}px)`;
+                    }
+                    ticking = false;
+                });
+                ticking = true;
             }
+        }
+
+        // Enhanced mobile experience
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add touch support
+            addTouchSupport();
+            
+            // Optimize for mobile viewport
+            const viewport = document.querySelector('meta[name="viewport"]');
+            if (viewport) {
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+            }
+            
+            // Intersection observer for sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+            
+            // Prevent zoom on orientation change (iOS)
+            window.addEventListener('orientationchange', () => {
+                document.querySelector('meta[name="viewport"]').setAttribute('content', 
+                    'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+            });
         });
+
+        // Replace the old scroll event with optimized version
+        window.addEventListener('scroll', optimizedScroll, { passive: true });
 
         // Add typing animation to hero title
         function typeWriter(element, text, speed = 100) {
