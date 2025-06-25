@@ -4,8 +4,9 @@
 #include "InputManager.h"
 #include "GameObject.h"
 #include "Transform.h"
+#include "Sprite.h"
 
-Engine::Engine() : window(nullptr), isRunning(false) {}
+Engine::Engine() : window(nullptr), renderer(nullptr), isRunning(false) {}
 
 Engine::~Engine() {
     Shutdown();
@@ -18,7 +19,7 @@ bool Engine::Init() {
     }
 
     window = SDL_CreateWindow(
-        "2D Game Engine",
+        "2D Game Engine with Sprites",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         windowWidth,
@@ -37,32 +38,70 @@ bool Engine::Init() {
         return false;
     }
 
+    // Initialize texture manager
+    textureManager = std::make_unique<TextureManager>(renderer);
+
+    // Set static references for Sprite class
+    Sprite::SetRenderer(renderer);
+    Sprite::SetTextureManager(textureManager.get());
+
     isRunning = true;
 
-    // Create some test game objects
-    CreateTestObjects();
+    // Create test objects with sprites
+    CreateTestSprites();
 
     return true;
 }
 
-void Engine::CreateTestObjects() {
-    // Create a player object
+void Engine::CreateTestSprites() {
+    // Create a player with a gradient texture
     auto player = std::make_unique<GameObject>("Player");
     player->GetTransform()->SetPosition(400, 300);
+
+    auto playerSprite = player->AddComponent<Sprite>();
+    SDL_Texture* playerTexture = textureManager->CreateGradientTexture(64, 64, 100, 255, 100, 50, 150, 50);
+    playerSprite->SetTexture(playerTexture);
+
     gameObjects.push_back(std::move(player));
 
-    // Create an enemy object
+    // Create an enemy with a checkered texture
     auto enemy = std::make_unique<GameObject>("Enemy");
     enemy->GetTransform()->SetPosition(200, 150);
-    enemy->GetTransform()->SetScale(1.5f); // Make it bigger
+    enemy->GetTransform()->SetScale(1.2f);
+
+    auto enemySprite = enemy->AddComponent<Sprite>();
+    SDL_Texture* enemyTexture = textureManager->CreateCheckeredTexture(48, 48, 255, 100, 100, 150, 50, 50);
+    enemySprite->SetTexture(enemyTexture);
+
     gameObjects.push_back(std::move(enemy));
 
-    // Create a moving object
+    // Create a moving object with solid blue
     auto movingBox = std::make_unique<GameObject>("MovingBox");
     movingBox->GetTransform()->SetPosition(600, 400);
+
+    auto movingSprite = movingBox->AddComponent<Sprite>();
+    SDL_Texture* blueTexture = textureManager->CreateColorTexture(40, 40, 100, 150, 255, 255);
+    movingSprite->SetTexture(blueTexture);
+
     gameObjects.push_back(std::move(movingBox));
 
-    std::cout << "Created " << gameObjects.size() << " game objects" << std::endl;
+    // Create a semi-transparent gradient object
+    auto ghostBox = std::make_unique<GameObject>("Ghost");
+    ghostBox->GetTransform()->SetPosition(100, 400);
+
+    auto ghostSprite = ghostBox->AddComponent<Sprite>();
+    SDL_Texture* ghostTexture = textureManager->CreateGradientTexture(60, 60, 255, 200, 255, 100, 50, 150);
+    ghostSprite->SetTexture(ghostTexture);
+    ghostSprite->SetAlpha(128); // Make it semi-transparent
+
+    gameObjects.push_back(std::move(ghostBox));
+
+    std::cout << "Created " << gameObjects.size() << " game objects with sprites" << std::endl;
+}
+
+void Engine::CreateTestObjects() {
+    // This method is now replaced by CreateTestSprites()
+    // Kept for backward compatibility
 }
 
 void Engine::Run() {
@@ -89,34 +128,6 @@ void Engine::HandleEvents() {
 
     if (input.IsKeyPressed(SDLK_ESCAPE)) {
         isRunning = false;
-    }
-
-    // Test input with game objects
-    if (!gameObjects.empty()) {
-        Transform* playerTransform = gameObjects[0]->GetTransform();
-
-        float moveSpeed = 200.0f; // pixels per second
-        Vector2 movement(0, 0);
-
-        if (input.IsKeyHeld(SDLK_w) || input.IsKeyHeld(SDLK_UP)) {
-            movement.y = -moveSpeed;
-        }
-        if (input.IsKeyHeld(SDLK_s) || input.IsKeyHeld(SDLK_DOWN)) {
-            movement.y = moveSpeed;
-        }
-        if (input.IsKeyHeld(SDLK_a) || input.IsKeyHeld(SDLK_LEFT)) {
-            movement.x = -moveSpeed;
-        }
-        if (input.IsKeyHeld(SDLK_d) || input.IsKeyHeld(SDLK_RIGHT)) {
-            movement.x = moveSpeed;
-        }
-
-        // Apply movement (will be multiplied by deltaTime in Update)
-        if (movement.x != 0 || movement.y != 0) {
-            // We'll store this for the update phase
-            static Vector2 pendingMovement;
-            pendingMovement = movement;
-        }
     }
 }
 
@@ -147,11 +158,26 @@ void Engine::Update(float deltaTime) {
         }
 
         playerTransform->Translate(movement);
+
+        // Test sprite color changes
+        if (input.IsKeyPressed(SDLK_SPACE)) {
+            auto sprite = gameObjects[0]->GetComponent<Sprite>();
+            if (sprite) {
+                // Toggle between normal and red tint
+                static bool isRed = false;
+                if (isRed) {
+                    sprite->SetColor(255, 255, 255, 255); // Normal
+                } else {
+                    sprite->SetColor(255, 100, 100, 255); // Red tint
+                }
+                isRed = !isRed;
+            }
+        }
     }
 
     // Example: Rotate the second object
     if (gameObjects.size() > 1) {
-        gameObjects[1]->GetTransform()->Rotate(90.0f * deltaTime); // 90 degrees per second
+        gameObjects[1]->GetTransform()->Rotate(90.0f * deltaTime);
     }
 
     // Example: Move the third object in a circle
@@ -168,6 +194,18 @@ void Engine::Update(float deltaTime) {
 
         gameObjects[2]->GetTransform()->SetPosition(x, y);
     }
+
+    // Example: Fade the ghost object in and out
+    if (gameObjects.size() > 3) {
+        static float ghostTime = 0.0f;
+        ghostTime += deltaTime;
+
+        auto ghostSprite = gameObjects[3]->GetComponent<Sprite>();
+        if (ghostSprite) {
+            Uint8 alpha = static_cast<Uint8>(127 + 127 * sin(ghostTime * 2.0f));
+            ghostSprite->SetAlpha(alpha);
+        }
+    }
 }
 
 void Engine::Render() {
@@ -175,12 +213,10 @@ void Engine::Render() {
     SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);
     SDL_RenderClear(renderer);
 
-    // Render all game objects
+    // Render all game objects (they now use their Sprite components)
     for (auto& gameObject : gameObjects) {
         if (gameObject->IsActive()) {
-            // For now, we'll render each GameObject as a colored rectangle
-            // Later, this will be handled by Sprite components
-            RenderGameObject(gameObject.get());
+            gameObject->Render(); // This will call Sprite::Render() for each object
         }
     }
 
@@ -188,29 +224,33 @@ void Engine::Render() {
 }
 
 void Engine::RenderGameObject(GameObject* gameObject) {
-    Transform* transform = gameObject->GetTransform();
+    // This method is no longer needed since GameObjects render themselves
+    // via their Sprite components, but keeping for backward compatibility
 
-    // Choose color based on object name
-    if (gameObject->GetName() == "Player") {
-        SDL_SetRenderDrawColor(renderer, 50, 150, 50, 255); // Green
-    } else if (gameObject->GetName() == "Enemy") {
-        SDL_SetRenderDrawColor(renderer, 150, 50, 50, 255); // Red
-    } else {
-        SDL_SetRenderDrawColor(renderer, 50, 50, 150, 255); // Blue
+    // If a GameObject doesn't have a Sprite component, render as colored rectangle
+    if (!gameObject->GetComponent<Sprite>()) {
+        Transform* transform = gameObject->GetTransform();
+
+        // Choose color based on object name
+        if (gameObject->GetName() == "Player") {
+            SDL_SetRenderDrawColor(renderer, 50, 150, 50, 255);
+        } else if (gameObject->GetName() == "Enemy") {
+            SDL_SetRenderDrawColor(renderer, 150, 50, 50, 255);
+        } else {
+            SDL_SetRenderDrawColor(renderer, 50, 50, 150, 255);
+        }
+
+        SDL_Rect rect = transform->ToSDLRect(50, 50);
+        SDL_RenderFillRect(renderer, &rect);
     }
-
-    // Get rectangle from transform (using 50x50 as default size)
-    SDL_Rect rect = transform->ToSDLRect(50, 50);
-    SDL_RenderFillRect(renderer, &rect);
-
-    // Optional: Draw a border
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White border
-    SDL_RenderDrawRect(renderer, &rect);
 }
 
 void Engine::Shutdown() {
-    // Clear game objects before shutting down SDL
+    // Clear game objects before shutting down
     gameObjects.clear();
+
+    // Clean up texture manager
+    textureManager.reset();
 
     if (renderer) {
         SDL_DestroyRenderer(renderer);

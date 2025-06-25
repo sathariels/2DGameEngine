@@ -6,6 +6,7 @@
 #include <memory>
 #include "InputManager.h"
 #include "GameObject.h"
+#include "TextureManager.h"
 
 class Engine {
 public:
@@ -31,8 +32,14 @@ private:
 
     // GameObject system
     std::vector<std::unique_ptr<GameObject>> gameObjects;
+
+    // Rendering system
+    std::unique_ptr<TextureManager> textureManager;
+
+    // Methods
     void CreateTestObjects();
     void RenderGameObject(GameObject* gameObject);
+    void CreateTestSprites(); // New method for sprite examples
 };
 
 #endif // ENGINE_H
