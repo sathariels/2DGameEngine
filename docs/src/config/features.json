@@ -1,0 +1,35 @@
+
+{
+  "features": [
+    {
+      "icon": "Layers",
+      "title": "Entity-Component-System Architecture",
+      "description": "Modular, data-oriented design pattern that separates game logic from data, enabling efficient memory usage and parallel processing."
+    },
+    {
+      "icon": "Zap",
+      "title": "High-Performance Rendering",
+      "description": "Custom OpenGL renderer with sprite batching, texture atlasing, and shader management for optimal GPU utilization."
+    },
+    {
+      "icon": "Cpu",
+      "title": "Multi-threaded Systems",
+      "description": "Parallel processing for physics, rendering, and game logic using modern C++ threading primitives."
+    },
+    {
+      "icon": "Gamepad2",
+      "title": "Flexible Input System",
+      "description": "Unified input handling supporting keyboard, mouse, and gamepad with customizable key bindings and input mapping."
+    },
+    {
+      "icon": "Code2",
+      "title": "Scripting Integration",
+      "description": "Lua scripting support for rapid gameplay prototyping and runtime behavior modification."
+    },
+    {
+      "icon": "Wrench",
+      "title": "Developer Tools",
+      "description": "Built-in profiler, entity inspector, and debug rendering for efficient development and optimization."
+    }
+  ]
+}

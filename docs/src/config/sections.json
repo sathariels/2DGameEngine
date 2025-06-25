@@ -1,0 +1,51 @@
+
+{
+  "videoShowcase": {
+    "title": "Engine in Action",
+    "description": "Watch a comprehensive demonstration of the engine's capabilities, from rendering systems to physics simulation and input handling.",
+    "youtubeVideoId": "dQw4w9WgXcQ",
+    "additionalInfo": "This demonstration showcases the engine's real-time rendering capabilities, including sprite batching, shader management, and physics integration. You'll see examples of particle systems, collision detection, and the component-based architecture in action."
+  },
+  "liveDemo": {
+    "title": "Interactive Demo",
+    "description": "Experience the engine firsthand with our interactive demo. Test the controls, physics, and rendering systems in real-time.",
+    "cardTitle": "Playable Game Demo",
+    "demoUrl": "/assets/demo/index.html",
+    "downloadUrl": "/assets/demo/demo-build.zip",
+    "downloadFilename": "game-engine-demo.zip",
+    "controls": [
+      "WASD or Arrow Keys - Movement",
+      "Mouse - Camera control",
+      "Space - Jump/Interact",
+      "Click objects to interact with physics"
+    ]
+  },
+  "whatIBuilt": {
+    "title": "What I Built",
+    "description": "A comprehensive 2D game engine built from the ground up, addressing real-world game development challenges with modern software engineering practices and performance-oriented design decisions.",
+    "problemStatement": "Existing game engines often come with unnecessary overhead for 2D games, or lack the flexibility needed for custom gameplay mechanics. This engine was designed to provide maximum performance for 2D games while maintaining the flexibility to implement any game concept efficiently. The ECS architecture ensures scalability from simple prototypes to complex, data-heavy games.",
+    "technologies": [
+      "C++17", "OpenGL 4.6", "GLFW", "GLM", "ImGui", 
+      "Lua 5.4", "Box2D", "OpenAL", "stb_image", "JSON"
+    ]
+  },
+  "tryItYourself": {
+    "title": "Try It Yourself",
+    "description": "Get hands-on with the engine. Download the source code, run the examples, and start building your own 2D games.",
+    "githubRepo": "https://github.com/yourusername/2d-game-engine",
+    "releasesUrl": "https://github.com/yourusername/2d-game-engine/releases",
+    "docsUrl": "https://yourusername.github.io/2d-game-engine-docs",
+    "setupGuideUrl": "https://github.com/yourusername/2d-game-engine#getting-started",
+    "quickStart": {
+      "commands": [
+        "# Clone the repository",
+        "git clone https://github.com/yourusername/2d-game-engine.git",
+        "# Build the engine",
+        "cd 2d-game-engine && mkdir build && cd build",
+        "cmake .. && make -j4",
+        "# Run the example game",
+        "./examples/platformer/platformer"
+      ]
+    }
+  }
+}

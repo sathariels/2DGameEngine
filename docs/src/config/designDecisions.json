@@ -1,0 +1,56 @@
+
+{
+  "title": "Design Decisions",
+  "description": "Key architectural choices that shaped the engine's performance, maintainability, and extensibility.",
+  "tabs": [
+    {
+      "id": "ecs",
+      "title": "ECS Architecture",
+      "content": {
+        "title": "Entity-Component-System Pattern",
+        "description": "Chose ECS over traditional object-oriented hierarchy to achieve better cache locality, easier parallelization, and more flexible entity composition.",
+        "codeExample": "// Component-based approach\nstruct Transform {\n    vec2 position;\n    float rotation;\n    vec2 scale;\n};\n\nstruct Sprite {\n    TextureID texture;\n    vec4 color;\n    vec2 size;\n};\n\n// Systems operate on components\nclass RenderSystem {\n    void update(Registry& registry) {\n        auto view = registry.view<Transform, Sprite>();\n        for (auto entity : view) {\n            auto& transform = view.get<Transform>(entity);\n            auto& sprite = view.get<Sprite>(entity);\n            render(transform, sprite);\n        }\n    }\n};",
+        "benefits": [
+          "Better cache performance",
+          "Easy parallel processing",
+          "Flexible entity composition",
+          "Easier to maintain and debug"
+        ],
+        "tradeoffs": [
+          "Steeper learning curve",
+          "More complex entity relationships",
+          "Additional memory overhead for sparse data"
+        ]
+      }
+    },
+    {
+      "id": "rendering",
+      "title": "Rendering Pipeline",
+      "content": {
+        "title": "Batched Rendering Pipeline",
+        "description": "Implemented sprite batching and texture atlasing to minimize draw calls and maximize GPU utilization for 2D rendering.",
+        "codeExample": "class SpriteBatcher {\n    struct Vertex {\n        vec2 position;\n        vec2 texCoords;\n        vec4 color;\n        float textureIndex;\n    };\n    \n    void flush() {\n        if (vertexCount == 0) return;\n        \n        // Upload vertex data\n        glBindBuffer(GL_ARRAY_BUFFER, VBO);\n        glBufferSubData(GL_ARRAY_BUFFER, 0, \n                       vertexCount * sizeof(Vertex), vertices);\n        \n        // Bind textures\n        for (int i = 0; i < textureSlotIndex; i++) {\n            glActiveTexture(GL_TEXTURE0 + i);\n            glBindTexture(GL_TEXTURE_2D, textureSlots[i]);\n        }\n        \n        // Single draw call for entire batch\n        glDrawElements(GL_TRIANGLES, indexCount, \n                      GL_UNSIGNED_INT, nullptr);\n    }\n};",
+        "performanceNote": "Reduced draw calls from ~1000/frame to ~10/frame for typical 2D scenes, resulting in 60fps performance on integrated graphics for complex scenes."
+      }
+    },
+    {
+      "id": "memory",
+      "title": "Memory Management",
+      "content": {
+        "title": "Memory Pool Allocation",
+        "description": "Custom memory allocators to reduce heap fragmentation and improve cache locality for game objects with predictable lifetimes.",
+        "codeExample": "template<typename T, size_t PoolSize>\nclass ObjectPool {\n    alignas(T) char storage[PoolSize * sizeof(T)];\n    std::bitset<PoolSize> used;\n    \npublic:\n    T* acquire() {\n        size_t index = used.find_first_not_set();\n        if (index == std::bitset<PoolSize>::npos) \n            return nullptr;\n            \n        used.set(index);\n        return reinterpret_cast<T*>(&storage[index * sizeof(T)]);\n    }\n    \n    void release(T* obj) {\n        ptrdiff_t index = (reinterpret_cast<char*>(obj) - storage) / sizeof(T);\n        used.reset(index);\n        obj->~T();\n    }\n};"
+      }
+    },
+    {
+      "id": "scripting",
+      "title": "Scripting System",
+      "content": {
+        "title": "Lua Integration",
+        "description": "Embedded Lua for gameplay scripting, allowing rapid iteration without recompilation while maintaining performance for core systems.",
+        "codeExample": "-- Lua gameplay script\nfunction onUpdate(entity, deltaTime)\n    local transform = getComponent(entity, \"Transform\")\n    local input = getInput()\n    \n    if input:isKeyPressed(\"W\") then\n        transform.position.y = transform.position.y + 100 * deltaTime\n    end\n    \n    -- Smooth camera follow\n    local camera = getCamera()\n    camera.position = lerp(camera.position, transform.position, 0.1)\nend\n\nfunction onCollision(entity, other)\n    if hasComponent(other, \"Collectible\") then\n        destroyEntity(other)\n        playSound(\"collect.wav\")\n    end\nend",
+        "whyLua": "Lua's lightweight nature, easy C++ integration, and excellent performance made it ideal for scripting game logic while keeping the engine core in C++."
+      }
+    }
+  ]
+}

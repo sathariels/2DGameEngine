@@ -1,0 +1,38 @@
+
+{
+  "site": {
+    "title": "Custom 2D Game Engine by Nithilan",
+    "description": "A high-performance 2D game engine built with modern C++ and OpenGL. Features ECS architecture, advanced rendering, and comprehensive development tools.",
+    "author": "Nithilan",
+    "url": "https://yourusername.github.io/2d-game-engine-portfolio/",
+    "keywords": "game engine, 2d games, c++, opengl, ecs, game development, nithilan"
+  },
+  "social": {
+    "github": "https://github.com/yourusername",
+    "email": "nithilan@example.com",
+    "linkedin": "https://linkedin.com/in/yourprofile",
+    "website": "https://nithilan.dev"
+  },
+  "hero": {
+    "title": "Custom 2D Game Engine",
+    "subtitle": "by Nithilan",
+    "description": "A high-performance, entity-component-system based game engine built from scratch with modern C++ and OpenGL. Designed for rapid prototyping and scalable game development.",
+    "primaryButton": {
+      "text": "Watch Demo",
+      "action": "scrollToDemo"
+    },
+    "secondaryButton": {
+      "text": "View Source Code",
+      "action": "scrollToGithub"
+    }
+  },
+  "navigation": {
+    "logo": "2D Game Engine",
+    "items": [
+      { "name": "Demo", "href": "#demo-section" },
+      { "name": "Features", "href": "#what-i-built" },
+      { "name": "Architecture", "href": "#design-decisions" },
+      { "name": "Download", "href": "#github-section" }
+    ]
+  }
+}
