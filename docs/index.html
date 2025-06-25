@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom 2D Game Engine by Nithilan</title>
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #111111;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --accent-blue: #0070f3;
+            --accent-red: #ff0000;
+            --border-color: #333333;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --border-color: #e1e5e9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .site-brand {
+            background: var(--accent-blue);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .site-brand:hover {
+            background: var(--accent-red);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            z-index: -2;
+        }
+
+        .hero-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-red));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: titlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--accent-blue);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background: var(--accent-red);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 112, 243, 0.3);
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 100px 0;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s ease;
+        }
+
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 50px;
+            color: var(--text-primary);
+        }
+
+        .section-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Video Showcase */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            margin-bottom: 30px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: none;
+            border-radius: 12px;
+        }
+
+        .video-description {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        /* Demo Section */
+        .demo-container {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .demo-frame {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: 8px;
+            background: #000;
+            margin: 20px 0;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 112, 243, 0.1);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        /* Contact Section */
+        .contact-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+
+        .contact-link {
+            display: inline-block;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .contact-link:hover {
+            background: var(--accent-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .contact-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px;
+            }
+
+            .hero-title {
+                font-size: 2.5rem;
+            }
+
+            .section {
+                padding: 60px 0;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .contact-links {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .demo-frame {
+                height: 300px;
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--accent-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+        <a href="https://nithilan.dev" class="site-brand">Nithilan's Website</a>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-bg"></div>
+        <video class="hero-video" autoplay muted loop>
+            <source src="assets/videos/hero-background.mp4" type="video/mp4">
+            <!-- Fallback for browsers that don't support video -->
+        </video>
+        <div class="hero-content">
+            <h1 class="hero-title">Custom 2D Game Engine</h1>
+            <p class="hero-subtitle">Built from scratch with modern C++ and optimized rendering pipeline</p>
+            <button class="cta-button" onclick="scrollToSection('video-showcase')">Watch Demo</button>
+        </div>
+    </section>
+
+    <!-- Video Showcase -->
+    <section class="section" id="video-showcase">
+        <div class="container">
+            <h2 class="section-title">Engine in Action</h2>
+            <div class="section-content">
+                <div class="video-container">
+                    <!-- YouTube Video Embed - Replace VIDEO_ID with your actual YouTube video ID -->
+                    <iframe src="https://www.youtube.com/embed/YOUR_VIDEO_ID" title="Game Engine Showcase" allowfullscreen>
+                    </iframe>
+                    <!-- Alternative: Use local video file -->
+                    <!-- <video controls poster="assets/images/video-thumbnail.jpg">
+                        <source src="assets/videos/engine-showcase.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video> -->
+                </div>
+                <p class="video-description">
+                    Watch this comprehensive demo showcasing the key features of the engine: real-time rendering, 
+                    physics simulation, particle systems, and the Entity Component System architecture in action. 
+                    The video demonstrates performance optimizations and the seamless integration of all engine components.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Demo -->
+    <section class="section" id="live-demo">
+        <div class="container">
+            <h2 class="section-title">Try It Live</h2>
+            <div class="section-content">
+                <div class="demo-container">
+                    <h3>Interactive Demo</h3>
+                    <p>Experience the engine directly in your browser:</p>
+                    <iframe class="demo-frame" src="assets/demo/index.html" title="Game Engine Demo">
+                        <p>Your browser doesn't support iframes. <a href="assets/demo/index.html" target="_blank">Open demo in new tab</a></p>
+                    </iframe>
+                    <p><a href="assets/demo/index.html" target="_blank" class="cta-button">Open in Full Screen</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What I Built -->
+    <section class="section" id="what-i-built">
+        <div class="container">
+            <h2 class="section-title">What I Built</h2>
+            <div class="section-content">
+                <p style="font-size: 1.2rem; margin-bottom: 30px; text-align: center; color: var(--text-secondary);">
+                    A high-performance 2D game engine built from the ground up using modern C++ and OpenGL
+                </p>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎮</div>
+                        <h3 class="feature-title">Entity Component System</h3>
+                        <p class="feature-description">
+                            Implemented a flexible ECS architecture for maximum performance and modularity, 
+                            allowing for complex game object behaviors and efficient memory usage.
+                        </p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🖼️</div>
+                        <h3 class="feature-title">Advanced Rendering</h3>
+                        <p class="feature-description">
+                            Custom OpenGL renderer with batch processing, texture atlasing, and shader pipeline 
+                            optimizations for smooth 60+ FPS performance even with thousands of sprites.
+                        </p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3 class="feature-title">Physics System</h3>
+                        <p class="feature-description">
+                            Built-in 2D physics engine with collision detection, rigid body dynamics, 
+                            and spatial partitioning for efficient broad-phase collision detection.
+                        </p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🎵</div>
+                        <h3 class="feature-title">Audio Engine</h3>
+                        <p class="feature-description">
+                            Multi-channel audio system with 3D positional audio, sound mixing, 
+                            and dynamic loading for immersive game experiences.
+                        </p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🔧</div>
+                        <h3 class="feature-title">Asset Pipeline</h3>
+                        <p class="feature-description">
+                            Streamlined asset loading and management system with hot-reloading capabilities 
+                            for faster iteration during development.
+                        </p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📱</div>
+                        <h3 class="feature-title">Cross-Platform</h3>
+                        <p class="feature-description">
+                            Designed to run on Windows, macOS, and Linux with consistent performance 
+                            and behavior across all platforms.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Design Decisions -->
+    <section class="section" id="design-decisions">
+        <div class="container">
+            <h2 class="section-title">Key Design Decisions</h2>
+            <div class="section-content">
+                <div class="feature-card" style="margin-bottom: 40px;">
+                    <h3 class="feature-title">Entity Component System Architecture</h3>
+                    <p class="feature-description" style="margin-bottom: 20px;">
+                        Chose ECS over traditional inheritance-based architecture for better performance and flexibility:
+                    </p>
+                    <div class="code-block">
+class Entity {
+    EntityID id;
+    ComponentMask componentMask;
+};
+
+template&lt;typename T&gt;
+class ComponentManager {
+    std::vector&lt;T&gt; components;
+    std::unordered_map&lt;EntityID, size_t&gt; entityToIndex;
+    
+public:
+    void AddComponent(EntityID entity, T component);
+    T& GetComponent(EntityID entity);
+};
+                    </div>
+                </div>
+
+                <div class="feature-card" style="margin-bottom: 40px;">
+                    <h3 class="feature-title">Batch Rendering Optimization</h3>
+                    <p class="feature-description" style="margin-bottom: 20px;">
+                        Implemented sprite batching to minimize draw calls and maximize GPU efficiency:
+                    </p>
+                    <div class="code-block">
+class SpriteBatch {
+    static constexpr size_t MAX_SPRITES = 10000;
+    std::vector&lt;SpriteVertex&gt; vertices;
+    GLuint VAO, VBO;
+    
+public:
+    void Begin();
+    void Draw(const Sprite& sprite, const Transform& transform);
+    void End(); // Flushes all sprites in one draw call
+};
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="feature-title">Memory-Efficient Component Storage</h3>
+                    <p class="feature-description" style="margin-bottom: 20px;">
+                        Used contiguous memory layout for cache-friendly component iteration:
+                    </p>
+                    <div class="code-block">
+// Components stored in contiguous arrays for better cache performance
+std::vector&lt;TransformComponent&gt; transforms;
+std::vector&lt;SpriteComponent&gt; sprites;
+std::vector&lt;PhysicsComponent&gt; physics;
+
+// Systems iterate over packed arrays
+for (size_t i = 0; i &lt; activeEntities; ++i) {
+    UpdateTransform(transforms[i]);
+    UpdatePhysics(physics[i]);
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Try It Yourself -->
+    <section class="section" id="try-it">
+        <div class="container">
+            <h2 class="section-title">Get Started</h2>
+            <div class="section-content">
+                <div style="text-align: center; margin-bottom: 40px;">
+                    <p style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 30px;">
+                        Ready to build your own games? Download the engine and start creating!
+                    </p>
+                    
+                    <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                        <a href="#" class="cta-button" style="background: var(--accent-red);">
+                            📦 Download Engine
+                        </a>
+                        <a href="https://github.com/yourusername/game-engine" class="cta-button" target="_blank">
+                            📚 View Documentation
+                        </a>
+                        <a href="https://github.com/yourusername/game-engine" class="cta-button" style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);" target="_blank">
+                            ⭐ Star on GitHub
+                        </a>
+                    </div>
+                </div>
+
+                <div class="feature-card" style="background: var(--bg-secondary);">
+                    <h3 class="feature-title">Quick Start Guide</h3>
+                    <div class="code-block">
+# Clone the repository
+git clone https://github.com/yourusername/game-engine.git
+cd game-engine
+
+# Build the engine
+mkdir build && cd build
+cmake ..
+make -j4
+
+# Run the sample game
+./bin/sample-game
+                    </div>
+                    <p class="feature-description">
+                        The engine comes with comprehensive documentation, sample projects, and tutorials 
+                        to help you get started quickly. Check out the GitHub repository for the latest updates 
+                        and community contributions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="section" id="contact">
+        <div class="container">
+            <h2 class="section-title">Let's Connect</h2>
+            <div class="section-content">
+                <div class="contact-links">
+                    <a href="mailto:your.email@example.com" class="contact-link">
+                        📧 Email
+                    </a>
+                    <a href="https://github.com/yourusername" class="contact-link" target="_blank">
+                        🐙 GitHub
+                    </a>
+                    <a href="https://linkedin.com/in/yourusername" class="contact-link" target="_blank">
+                        💼 LinkedIn
+                    </a>
+                    <a href="https://medium.com/@yourusername" class="contact-link" target="_blank">
+                        ✍️ Medium
+                    </a>
+                </div>
+                
+                <div style="text-align: center; margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.9rem;">
+                    Designed by Sathariels
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.addEventListener('DOMContentLoaded', () => {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+        });
+
+        // Add parallax effect to hero section
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const hero = document.querySelector('.hero');
+            const heroVideo = document.querySelector('.hero-video');
+            
+            if (hero && heroVideo) {
+                const rate = scrolled * -0.5;
+                heroVideo.style.transform = `translateY(${rate}px)`;
+            }
+        });
+
+        // Add typing animation to hero title
+        function typeWriter(element, text, speed = 100) {
+            let i = 0;
+            element.textContent = '';
+            
+            function type() {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                }
+            }
+            
+            type();
+        }
+
+        // Initialize typing animation when page loads
+        window.addEventListener('load', () => {
+            const heroTitle = document.querySelector('.hero-title');
+            if (heroTitle) {
+                const originalText = heroTitle.textContent;
+                setTimeout(() => {
+                    typeWriter(heroTitle, originalText, 80);
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
