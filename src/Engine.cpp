@@ -5,6 +5,8 @@
 #include "GameObject.h"
 #include "Transform.h"
 #include "Sprite.h"
+#include "Rigidbody.h"
+#include "Collider.h"
 
 Engine::Engine() : window(nullptr), renderer(nullptr), isRunning(false) {}
 
@@ -41,62 +43,99 @@ bool Engine::Init() {
     // Initialize texture manager
     textureManager = std::make_unique<TextureManager>(renderer);
 
+    // Initialize physics system
+    physics = std::make_unique<Physics>();
+
     // Set static references for Sprite class
     Sprite::SetRenderer(renderer);
     Sprite::SetTextureManager(textureManager.get());
 
+    // Set static references for Collider debug drawing
+    Collider::SetDebugRenderer(renderer);
+    Collider::SetGlobalDebugDraw(true); // Enable debug visualization
+
     isRunning = true;
 
-    // Create test objects with sprites
-    CreateTestSprites();
+    // Create physics demo objects
+    CreatePhysicsDemo();
 
     return true;
 }
 
-void Engine::CreateTestSprites() {
-    // Create a player with a gradient texture
+void Engine::CreatePhysicsDemo() {
+    // Create ground (static platform)
+    auto ground = std::make_unique<GameObject>("Ground");
+    ground->GetTransform()->SetPosition(400, 550);
+
+    auto groundSprite = ground->AddComponent<Sprite>();
+    SDL_Texture* groundTexture = textureManager->CreateColorTexture(600, 50, 100, 100, 100, 255);
+    groundSprite->SetTexture(groundTexture);
+
+    auto groundCollider = ground->AddComponent<Collider>(600, 50, ColliderType::STATIC);
+    groundCollider->SetBounciness(0.3f);
+
+    gameObjects.push_back(std::move(ground));
+
+    // Create bouncing ball
+    auto ball = std::make_unique<GameObject>("Ball");
+    ball->GetTransform()->SetPosition(200, 100);
+
+    auto ballSprite = ball->AddComponent<Sprite>();
+    SDL_Texture* ballTexture = textureManager->CreateGradientTexture(40, 40, 255, 100, 100, 150, 50, 50);
+    ballSprite->SetTexture(ballTexture);
+
+    auto ballRigidbody = ball->AddComponent<Rigidbody>();
+    ballRigidbody->SetVelocity(150, 0); // Start with horizontal velocity
+
+    auto ballCollider = ball->AddComponent<Collider>(40, 40, ColliderType::DYNAMIC);
+    ballCollider->SetBounciness(0.8f);
+
+    gameObjects.push_back(std::move(ball));
+
+    // Create controllable player
     auto player = std::make_unique<GameObject>("Player");
     player->GetTransform()->SetPosition(400, 300);
 
     auto playerSprite = player->AddComponent<Sprite>();
-    SDL_Texture* playerTexture = textureManager->CreateGradientTexture(64, 64, 100, 255, 100, 50, 150, 50);
+    SDL_Texture* playerTexture = textureManager->CreateCheckeredTexture(50, 50, 100, 255, 100, 50, 150, 50);
     playerSprite->SetTexture(playerTexture);
+
+    auto playerRigidbody = player->AddComponent<Rigidbody>();
+    playerRigidbody->SetGravityScale(0.0f); // Player not affected by gravity
+    playerRigidbody->SetDrag(5.0f); // High drag for responsive controls
+
+    auto playerCollider = player->AddComponent<Collider>(50, 50, ColliderType::DYNAMIC);
+    playerCollider->SetBounciness(0.1f);
 
     gameObjects.push_back(std::move(player));
 
-    // Create an enemy with a checkered texture
-    auto enemy = std::make_unique<GameObject>("Enemy");
-    enemy->GetTransform()->SetPosition(200, 150);
-    enemy->GetTransform()->SetScale(1.2f);
+    // Create left wall
+    auto leftWall = std::make_unique<GameObject>("LeftWall");
+    leftWall->GetTransform()->SetPosition(25, 300);
 
-    auto enemySprite = enemy->AddComponent<Sprite>();
-    SDL_Texture* enemyTexture = textureManager->CreateCheckeredTexture(48, 48, 255, 100, 100, 150, 50, 50);
-    enemySprite->SetTexture(enemyTexture);
+    auto leftWallSprite = leftWall->AddComponent<Sprite>();
+    SDL_Texture* wallTexture = textureManager->CreateColorTexture(50, 600, 80, 80, 80, 255);
+    leftWallSprite->SetTexture(wallTexture);
 
-    gameObjects.push_back(std::move(enemy));
+    auto leftWallCollider = leftWall->AddComponent<Collider>(50, 600, ColliderType::STATIC);
+    leftWallCollider->SetBounciness(0.5f);
 
-    // Create a moving object with solid blue
-    auto movingBox = std::make_unique<GameObject>("MovingBox");
-    movingBox->GetTransform()->SetPosition(600, 400);
+    gameObjects.push_back(std::move(leftWall));
 
-    auto movingSprite = movingBox->AddComponent<Sprite>();
-    SDL_Texture* blueTexture = textureManager->CreateColorTexture(40, 40, 100, 150, 255, 255);
-    movingSprite->SetTexture(blueTexture);
+    // Create right wall
+    auto rightWall = std::make_unique<GameObject>("RightWall");
+    rightWall->GetTransform()->SetPosition(775, 300);
 
-    gameObjects.push_back(std::move(movingBox));
+    auto rightWallSprite = rightWall->AddComponent<Sprite>();
+    rightWallSprite->SetTexture(wallTexture); // Reuse wall texture
 
-    // Create a semi-transparent gradient object
-    auto ghostBox = std::make_unique<GameObject>("Ghost");
-    ghostBox->GetTransform()->SetPosition(100, 400);
+    auto rightWallCollider = rightWall->AddComponent<Collider>(50, 600, ColliderType::STATIC);
+    rightWallCollider->SetBounciness(0.5f);
 
-    auto ghostSprite = ghostBox->AddComponent<Sprite>();
-    SDL_Texture* ghostTexture = textureManager->CreateGradientTexture(60, 60, 255, 200, 255, 100, 50, 150);
-    ghostSprite->SetTexture(ghostTexture);
-    ghostSprite->SetAlpha(128); // Make it semi-transparent
+    gameObjects.push_back(std::move(rightWall));
 
-    gameObjects.push_back(std::move(ghostBox));
-
-    std::cout << "Created " << gameObjects.size() << " game objects with sprites" << std::endl;
+    std::cout << "Created physics demo with " << gameObjects.size() << " objects" << std::endl;
+    std::cout << "Controls: WASD to move player, SPACE to add force to player, R to reset ball" << std::endl;
 }
 
 void Engine::CreateTestObjects() {
@@ -132,78 +171,64 @@ void Engine::HandleEvents() {
 }
 
 void Engine::Update(float deltaTime) {
+    // Update physics system
+    physics->Update(deltaTime, gameObjects);
+
     // Update all game objects
     for (auto& gameObject : gameObjects) {
         gameObject->Update(deltaTime);
     }
 
-    // Example: Move the first object (player) with input
+    // Handle player input
     if (!gameObjects.empty()) {
-        Transform* playerTransform = gameObjects[0]->GetTransform();
-
-        float moveSpeed = 200.0f; // pixels per second
-        Vector2 movement(0, 0);
-
-        if (input.IsKeyHeld(SDLK_w) || input.IsKeyHeld(SDLK_UP)) {
-            movement.y = -moveSpeed * deltaTime;
-        }
-        if (input.IsKeyHeld(SDLK_s) || input.IsKeyHeld(SDLK_DOWN)) {
-            movement.y = moveSpeed * deltaTime;
-        }
-        if (input.IsKeyHeld(SDLK_a) || input.IsKeyHeld(SDLK_LEFT)) {
-            movement.x = -moveSpeed * deltaTime;
-        }
-        if (input.IsKeyHeld(SDLK_d) || input.IsKeyHeld(SDLK_RIGHT)) {
-            movement.x = moveSpeed * deltaTime;
-        }
-
-        playerTransform->Translate(movement);
-
-        // Test sprite color changes
-        if (input.IsKeyPressed(SDLK_SPACE)) {
-            auto sprite = gameObjects[0]->GetComponent<Sprite>();
-            if (sprite) {
-                // Toggle between normal and red tint
-                static bool isRed = false;
-                if (isRed) {
-                    sprite->SetColor(255, 255, 255, 255); // Normal
-                } else {
-                    sprite->SetColor(255, 100, 100, 255); // Red tint
-                }
-                isRed = !isRed;
+        // Find player object
+        GameObject* player = nullptr;
+        for (auto& obj : gameObjects) {
+            if (obj->GetName() == "Player") {
+                player = obj.get();
+                break;
             }
         }
-    }
 
-    // Example: Rotate the second object
-    if (gameObjects.size() > 1) {
-        gameObjects[1]->GetTransform()->Rotate(90.0f * deltaTime);
-    }
+        if (player) {
+            Rigidbody* playerRigidbody = player->GetComponent<Rigidbody>();
 
-    // Example: Move the third object in a circle
-    if (gameObjects.size() > 2) {
-        static float time = 0.0f;
-        time += deltaTime;
+            if (playerRigidbody) {
+                float moveForce = 1000.0f; // Force applied per second
 
-        float radius = 100.0f;
-        float centerX = 600.0f;
-        float centerY = 400.0f;
+                // Apply forces based on input
+                if (input.IsKeyHeld(SDLK_w) || input.IsKeyHeld(SDLK_UP)) {
+                    playerRigidbody->AddForce(0, -moveForce * deltaTime);
+                }
+                if (input.IsKeyHeld(SDLK_s) || input.IsKeyHeld(SDLK_DOWN)) {
+                    playerRigidbody->AddForce(0, moveForce * deltaTime);
+                }
+                if (input.IsKeyHeld(SDLK_a) || input.IsKeyHeld(SDLK_LEFT)) {
+                    playerRigidbody->AddForce(-moveForce * deltaTime, 0);
+                }
+                if (input.IsKeyHeld(SDLK_d) || input.IsKeyHeld(SDLK_RIGHT)) {
+                    playerRigidbody->AddForce(moveForce * deltaTime, 0);
+                }
 
-        float x = centerX + radius * cos(time);
-        float y = centerY + radius * sin(time);
+                // Space for upward impulse
+                if (input.IsKeyPressed(SDLK_SPACE)) {
+                    playerRigidbody->AddImpulse(Vector2(0, -300));
+                }
+            }
+        }
 
-        gameObjects[2]->GetTransform()->SetPosition(x, y);
-    }
-
-    // Example: Fade the ghost object in and out
-    if (gameObjects.size() > 3) {
-        static float ghostTime = 0.0f;
-        ghostTime += deltaTime;
-
-        auto ghostSprite = gameObjects[3]->GetComponent<Sprite>();
-        if (ghostSprite) {
-            Uint8 alpha = static_cast<Uint8>(127 + 127 * sin(ghostTime * 2.0f));
-            ghostSprite->SetAlpha(alpha);
+        // R to reset ball position
+        if (input.IsKeyPressed(SDLK_r)) {
+            for (auto& obj : gameObjects) {
+                if (obj->GetName() == "Ball") {
+                    obj->GetTransform()->SetPosition(200, 100);
+                    auto rigidbody = obj->GetComponent<Rigidbody>();
+                    if (rigidbody) {
+                        rigidbody->SetVelocity(150, 0);
+                    }
+                    break;
+                }
+            }
         }
     }
 }
@@ -249,7 +274,8 @@ void Engine::Shutdown() {
     // Clear game objects before shutting down
     gameObjects.clear();
 
-    // Clean up texture manager
+    // Clean up systems
+    physics.reset();
     textureManager.reset();
 
     if (renderer) {

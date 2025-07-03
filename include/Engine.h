@@ -7,6 +7,7 @@
 #include "InputManager.h"
 #include "GameObject.h"
 #include "TextureManager.h"
+#include "Physics.h"
 
 class Engine {
 public:
@@ -36,10 +37,14 @@ private:
     // Rendering system
     std::unique_ptr<TextureManager> textureManager;
 
+    // Physics system
+    std::unique_ptr<Physics> physics;
+
     // Methods
     void CreateTestObjects();
     void RenderGameObject(GameObject* gameObject);
     void CreateTestSprites(); // New method for sprite examples
+    void CreatePhysicsDemo(); // New method for physics examples
 };
 
 #endif // ENGINE_H
