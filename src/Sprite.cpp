@@ -1,7 +1,7 @@
-#include "Sprite.h"
-#include "GameObject.h"
-#include "TextureManager.h"
-#include "Transform.h"
+#include "../include/Sprite.h"
+#include "../include/GameObject.h"
+#include "../include/TextureManager.h"
+#include "../include/Transform.h"
 #include <iostream>
 
 SDL_Renderer *Sprite::renderer = nullptr;

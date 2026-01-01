@@ -1,6 +1,6 @@
-#include "Rigidbody.h"
-#include "GameObject.h"
-#include "Transform.h"
+#include "../include/Rigidbody.h"
+#include "../include/GameObject.h"
+#include "../include/Transform.h"
 
 Rigidbody::Rigidbody()
     : velocity(0, 0), acceleration(0, 0), mass(1.0f), drag(0.5f),

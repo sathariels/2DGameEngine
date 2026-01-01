@@ -1,6 +1,6 @@
-#include "Collider.h"
-#include "GameObject.h"
-#include "Transform.h"
+#include "../include/Collider.h"
+#include "../include/GameObject.h"
+#include "../include/Transform.h"
 
 SDL_Renderer *Collider::debugRenderer = nullptr;
 bool Collider::enableDebugDraw = false;

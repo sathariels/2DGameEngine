@@ -1,7 +1,7 @@
-#include "Physics.h"
-#include "Collider.h"
-#include "Rigidbody.h"
-#include "Transform.h"
+#include "../include/Physics.h"
+#include "../include/Collider.h"
+#include "../include/Rigidbody.h"
+#include "../include/Transform.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>

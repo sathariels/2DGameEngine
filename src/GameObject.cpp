@@ -1,6 +1,6 @@
-#include "GameObject.h"
-#include "Component.h"
-#include "Transform.h"
+#include "../include/GameObject.h"
+#include "../include/Component.h"
+#include "../include/Transform.h"
 #include <iostream>
 
 unsigned int GameObject::nextID = 1;
