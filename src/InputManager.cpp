@@ -1,7 +1,15 @@
 #include "../include/InputManager.h"
 #include <iostream>
 
-InputManager::InputManager() {}
+InputManager* InputManager::instance = nullptr;
+
+InputManager::InputManager() {
+    instance = this;
+}
+
+InputManager* InputManager::Get() {
+    return instance;
+}
 
 void InputManager::Update() {
     // Save the previous key state

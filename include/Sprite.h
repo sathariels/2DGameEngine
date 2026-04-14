@@ -15,6 +15,7 @@ public:
 
   void SetTexture(SDL_Texture *texture);
   void SetDimensions(int width, int height);
+  void SetColor(Uint8 r, Uint8 g, Uint8 b);
 
   void Render() override;
 
@@ -26,6 +27,7 @@ private:
   SDL_Texture *texture;
   int width;
   int height;
+  SDL_Color color;
 
   static SDL_Renderer *renderer;
   static TextureManager *textureManager;

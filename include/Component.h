@@ -12,6 +12,11 @@ public:
     virtual void Update(float deltaTime) {}
     virtual void Render() {}
 
+    // Collision callbacks (fired by Physics system)
+    virtual void OnCollisionEnter(GameObject* other) {}
+    virtual void OnCollisionStay(GameObject* other)  {}
+    virtual void OnCollisionExit(GameObject* other)  {}
+
     // Owner management
     void SetOwner(GameObject* owner);
     GameObject* GetOwner() const;

@@ -42,6 +42,11 @@ public:
     // Update all components
     void Update(float deltaTime);
     void Render();
+
+    // Collision event dispatch (called by Physics, forwarded to all components)
+    void OnCollisionEnter(GameObject* other);
+    void OnCollisionStay(GameObject* other);
+    void OnCollisionExit(GameObject* other);
     
     // Unique ID for this GameObject
     unsigned int GetID() const;

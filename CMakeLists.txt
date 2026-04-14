@@ -8,6 +8,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
 
+# Add SDL2_ttf
+find_library(SDL2TTF_LIB NAMES SDL2_ttf HINTS /opt/homebrew/lib)
+
 # Include directories
 include_directories(include)
 
@@ -20,6 +23,7 @@ set(SRC_FILES
     src/Transform.cpp
     src/TextureManager.cpp
     src/Sprite.cpp
+    src/Text.cpp
     src/Rigidbody.cpp
     src/Collider.cpp
     src/Physics.cpp
@@ -35,6 +39,7 @@ set(HEADER_FILES
     include/Transform.h
     include/TextureManager.h
     include/Sprite.h
+    include/Text.h
     include/Rigidbody.h
     include/Collider.h
     include/Physics.h
@@ -43,4 +48,4 @@ set(HEADER_FILES
 add_executable(2DGameEngine ${SRC_FILES} ${HEADER_FILES})
 
 target_include_directories(2DGameEngine PRIVATE include)
-target_link_libraries(2DGameEngine ${SDL2_LIBRARIES})
+target_link_libraries(2DGameEngine ${SDL2_LIBRARIES} ${SDL2TTF_LIB})

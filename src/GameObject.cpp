@@ -63,3 +63,18 @@ void GameObject::Render() {
     }
   }
 }
+
+void GameObject::OnCollisionEnter(GameObject *other) {
+  for (auto &pair : components)
+    if (pair.second->IsActive()) pair.second->OnCollisionEnter(other);
+}
+
+void GameObject::OnCollisionStay(GameObject *other) {
+  for (auto &pair : components)
+    if (pair.second->IsActive()) pair.second->OnCollisionStay(other);
+}
+
+void GameObject::OnCollisionExit(GameObject *other) {
+  for (auto &pair : components)
+    if (pair.second->IsActive()) pair.second->OnCollisionExit(other);
+}

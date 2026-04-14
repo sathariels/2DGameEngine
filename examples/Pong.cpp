@@ -3,154 +3,150 @@
 #include "Engine.h"
 #include "Rigidbody.h"
 #include "Sprite.h"
+#include "Text.h"
 #include "Transform.h"
 #include <iostream>
+#include <random>
+#include <string>
 
-// components/PaddleController.h
+static int p1Score = 0;
+static int p2Score = 0;
+static GameObject *p1ScoreGO = nullptr;
+static GameObject *p2ScoreGO = nullptr;
+
+static void updateScores() {
+    if (p1ScoreGO)
+        p1ScoreGO->GetComponent<Text>()->SetText(std::to_string(p1Score));
+    if (p2ScoreGO)
+        p2ScoreGO->GetComponent<Text>()->SetText(std::to_string(p2Score));
+}
+
+// ---- Paddle Controller ------------------------------------------------
 class PaddleController : public Component {
 public:
-  PaddleController(SDL_Keycode upKey, SDL_Keycode downKey, float speed)
-      : upKey(upKey), downKey(downKey), speed(speed) {}
+    PaddleController(SDL_Keycode upKey, SDL_Keycode downKey, float speed)
+        : upKey(upKey), downKey(downKey), speed(speed) {}
 
-  void Update(float deltaTime) override { // Use overriding Update loop
-    // We need access to input.
-    // Since InputManager is private in Engine, and Engine handles Input.
-    // We need a way to access Input.
-    // For now, let's use SDL_GetKeyboardState directly for simplicity in this
-    // example OR we should have exposed InputManager from Engine.
+    void Update(float deltaTime) override {
+        InputManager *input = InputManager::Get();
+        if (!input) return;
 
-    // Let's use SDL directly for this component to avoid changing Engine too
-    // much In a real engine, InputManager would be a Service or Singleton or
-    // passed in.
-    const Uint8 *state = SDL_GetKeyboardState(nullptr);
+        Rigidbody *rb = owner->GetComponent<Rigidbody>();
+        if (!rb) return;
 
-    Rigidbody *rb = owner->GetComponent<Rigidbody>();
-    if (rb) {
-      rb->SetVelocity(0, 0); // Reset velocity each frame for direct control
-
-      if (state[SDL_GetScancodeFromKey(upKey)]) {
-        rb->SetVelocity(0, -speed);
-      } else if (state[SDL_GetScancodeFromKey(downKey)]) {
-        rb->SetVelocity(0, speed);
-      }
+        rb->SetVelocity(0, 0);
+        if (input->IsKeyHeld(upKey))   rb->SetVelocity(0, -speed);
+        else if (input->IsKeyHeld(downKey)) rb->SetVelocity(0, speed);
     }
-  }
 
 private:
-  SDL_Keycode upKey;
-  SDL_Keycode downKey;
-  float speed;
+    SDL_Keycode upKey, downKey;
+    float       speed;
 };
 
-// components/BallLogic.h
+// ---- Ball Logic -------------------------------------------------------
 class BallLogic : public Component {
 public:
-  void Update(float deltaTime) override {
-    Transform *t = owner->GetTransform();
-    Vector2 pos = t->GetPosition();
+    void Update(float deltaTime) override {
+        Transform *t   = owner->GetTransform();
+        Vector2    pos = t->GetPosition();
 
-    // Simple scoring check
-    if (pos.x < 0) {
-      std::cout << "Player 2 Scored!" << std::endl;
-      ResetBall();
-    } else if (pos.x > 800) {
-      std::cout << "Player 1 Scored!" << std::endl;
-      ResetBall();
+        if (pos.x < 0) {
+            p2Score++;
+            updateScores();
+            std::cout << "Player 2 Scored! (" << p2Score << ")\n";
+            ResetBall();
+        } else if (pos.x > 800) {
+            p1Score++;
+            updateScores();
+            std::cout << "Player 1 Scored! (" << p1Score << ")\n";
+            ResetBall();
+        }
     }
-  }
 
-  void ResetBall() {
-    Transform *t = owner->GetTransform();
-    t->SetPosition(400, 300);
+    void ResetBall() {
+        static std::mt19937 rng{std::random_device{}()};
+        static std::uniform_real_distribution<float> yDist(-150.0f, 150.0f);
+        static std::uniform_int_distribution<int>    sign(0, 1);
 
-    Rigidbody *rb = owner->GetComponent<Rigidbody>();
-    if (rb) {
-      // Randomize direction slightly
-      float dirX = (rand() % 2 == 0) ? 1.0f : -1.0f;
-      float dirY = ((rand() % 100) - 50) / 100.0f;
-      rb->SetVelocity(dirX * 300, dirY * 300);
+        owner->GetTransform()->SetPosition(400, 300);
+        Rigidbody *rb = owner->GetComponent<Rigidbody>();
+        if (rb) {
+            float dirX = sign(rng) ? 1.0f : -1.0f;
+            rb->SetVelocity(dirX * 300.0f, yDist(rng));
+        }
     }
-  }
 };
 
+// ---- main -------------------------------------------------------------
 int main() {
-  Engine engine;
+    Engine engine;
+    if (!engine.Init()) return -1;
 
-  if (!engine.Init()) {
-    return -1;
-  }
+    Text::LoadFont("/System/Library/Fonts/SFNSMono.ttf", 52);
 
-  TextureManager *tm = nullptr;
-  // We can't access TextureManager from here easily because it's private in
-  // Engine. However, Sprite uses a static reference to it!
+    // --- Score displays ---
+    auto p1Text = std::make_unique<GameObject>("P1Score");
+    p1Text->GetTransform()->SetPosition(200, 40);
+    p1Text->AddComponent<Text>("0", 52)->SetColor(100, 180, 255);
+    p1ScoreGO = p1Text.get();
+    engine.AddGameObject(std::move(p1Text));
 
-  // --- Create Paddle 1 (Left) ---
-  auto p1 = std::make_unique<GameObject>("Player1");
-  p1->GetTransform()->SetPosition(30, 300);
-  p1->AddComponent<Sprite>()->SetDimensions(20, 100);
-  // Note: Sprite will be pink since we didn't set texture, which is fine for
-  // pong
+    auto p2Text = std::make_unique<GameObject>("P2Score");
+    p2Text->GetTransform()->SetPosition(600, 40);
+    p2Text->AddComponent<Text>("0", 52)->SetColor(255, 100, 100);
+    p2ScoreGO = p2Text.get();
+    engine.AddGameObject(std::move(p2Text));
 
-  p1->AddComponent<PaddleController>(SDLK_w, SDLK_s, 400.0f);
-  p1->AddComponent<Collider>(20, 100, ColliderType::DYNAMIC)
-      ->SetBounciness(0.0f);
+    // --- Walls ---
+    auto topWall = std::make_unique<GameObject>("TopWall");
+    topWall->GetTransform()->SetPosition(400, -10);
+    topWall->AddComponent<Collider>(800, 20, ColliderType::STATIC)->SetBounciness(1.0f);
+    engine.AddGameObject(std::move(topWall));
 
-  // We use a Rigidbody but we want it to be "Kinematic" (controlled by script,
-  // not physics forces usually) But our Physics engine handles all dynamic
-  // bodies. Setting high mass or drag helps, or just setting velocity directly
-  // (which we do).
-  p1->AddComponent<Rigidbody>()->SetGravityScale(0.0f);
+    auto botWall = std::make_unique<GameObject>("BotWall");
+    botWall->GetTransform()->SetPosition(400, 610);
+    botWall->AddComponent<Collider>(800, 20, ColliderType::STATIC)->SetBounciness(1.0f);
+    engine.AddGameObject(std::move(botWall));
 
-  engine.AddGameObject(std::move(p1));
+    // --- Player 1 paddle (blue) ---
+    auto p1 = std::make_unique<GameObject>("Player1");
+    p1->GetTransform()->SetPosition(30, 300);
+    p1->AddComponent<Sprite>()->SetDimensions(20, 100);
+    p1->GetComponent<Sprite>()->SetColor(100, 180, 255);
+    p1->AddComponent<PaddleController>(SDLK_w, SDLK_s, 400.0f);
+    p1->AddComponent<Collider>(20, 100, ColliderType::DYNAMIC)->SetBounciness(0.0f);
+    p1->AddComponent<Rigidbody>()->SetGravityScale(0.0f);
+    engine.AddGameObject(std::move(p1));
 
-  // --- Create Paddle 2 (Right) ---
-  auto p2 = std::make_unique<GameObject>("Player2");
-  p2->GetTransform()->SetPosition(770, 300);
-  p2->AddComponent<Sprite>()->SetDimensions(20, 100);
+    // --- Player 2 paddle (red) ---
+    auto p2 = std::make_unique<GameObject>("Player2");
+    p2->GetTransform()->SetPosition(770, 300);
+    p2->AddComponent<Sprite>()->SetDimensions(20, 100);
+    p2->GetComponent<Sprite>()->SetColor(255, 100, 100);
+    p2->AddComponent<PaddleController>(SDLK_UP, SDLK_DOWN, 400.0f);
+    p2->AddComponent<Collider>(20, 100, ColliderType::DYNAMIC)->SetBounciness(0.0f);
+    p2->AddComponent<Rigidbody>()->SetGravityScale(0.0f);
+    engine.AddGameObject(std::move(p2));
 
-  p2->AddComponent<PaddleController>(SDLK_UP, SDLK_DOWN, 400.0f);
-  p2->AddComponent<Collider>(20, 100, ColliderType::DYNAMIC)
-      ->SetBounciness(0.0f);
-  p2->AddComponent<Rigidbody>()->SetGravityScale(0.0f);
+    // --- Ball (white) ---
+    auto ball = std::make_unique<GameObject>("Ball");
+    ball->GetTransform()->SetPosition(400, 300);
+    ball->AddComponent<Sprite>()->SetDimensions(16, 16);
+    ball->GetComponent<Sprite>()->SetColor(255, 255, 255);
+    ball->AddComponent<Collider>(16, 16, ColliderType::DYNAMIC)->SetBounciness(1.0f);
+    auto *rb = ball->AddComponent<Rigidbody>();
+    rb->SetGravityScale(0.0f);
+    rb->SetVelocity(300, 150);
+    rb->SetDrag(0.0f);
+    rb->SetMass(1.0f);
+    ball->AddComponent<BallLogic>();
+    engine.AddGameObject(std::move(ball));
 
-  engine.AddGameObject(std::move(p2));
+    std::cout << "=== PONG ===\n";
+    std::cout << "W/S - Left paddle   |   UP/DOWN - Right paddle\n";
+    std::cout << "ESC - quit\n\n";
 
-  // --- Create Ball ---
-  auto ball = std::make_unique<GameObject>("Ball");
-  ball->GetTransform()->SetPosition(400, 300);
-  ball->AddComponent<Sprite>()->SetDimensions(20, 20);
-
-  ball->AddComponent<Collider>(20, 20, ColliderType::DYNAMIC)
-      ->SetBounciness(1.0f); // PERFECT bounce
-
-  auto ballRb = ball->AddComponent<Rigidbody>();
-  ballRb->SetGravityScale(0.0f);
-  ballRb->SetVelocity(300, 200); // Start moving
-  ballRb->SetDrag(0.0f);         // No air resistance
-  ballRb->SetMass(1.0f);
-
-  ball->AddComponent<BallLogic>();
-
-  engine.AddGameObject(std::move(ball));
-
-  // --- Create Top/Bottom Walls ---
-  auto topWall = std::make_unique<GameObject>("TopWall");
-  topWall->GetTransform()->SetPosition(400, -10);
-  topWall->AddComponent<Collider>(800, 20, ColliderType::STATIC)
-      ->SetBounciness(1.0f);
-  engine.AddGameObject(std::move(topWall));
-
-  auto botWall = std::make_unique<GameObject>("BotWall");
-  botWall->GetTransform()->SetPosition(400, 610);
-  botWall->AddComponent<Collider>(800, 20, ColliderType::STATIC)
-      ->SetBounciness(1.0f);
-  engine.AddGameObject(std::move(botWall));
-
-  std::cout << "Starting Pong..." << std::endl;
-  std::cout << "Controls: W/S for Left Paddle, UP/DOWN for Right Paddle"
-            << std::endl;
-
-  engine.Run();
-
-  return 0;
+    engine.Run();
+    return 0;
 }

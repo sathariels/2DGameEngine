@@ -2,9 +2,9 @@
 #include "../include/Collider.h"
 #include "../include/GameObject.h"
 #include "../include/InputManager.h"
-#include "../include/Rigidbody.h"
 #include "../include/Sprite.h"
-#include "../include/Transform.h"
+#include "../include/Text.h"
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
 #include <thread>
 
@@ -15,6 +15,11 @@ Engine::~Engine() { Shutdown(); }
 bool Engine::Init() {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+    return false;
+  }
+
+  if (TTF_Init() != 0) {
+    std::cerr << "TTF_Init Error: " << TTF_GetError() << std::endl;
     return false;
   }
 
@@ -39,9 +44,10 @@ bool Engine::Init() {
   // Initialize physics system
   physics = std::make_unique<Physics>();
 
-  // Set static references for Sprite class
+  // Set static references for Sprite and Text
   Sprite::SetRenderer(renderer);
   Sprite::SetTextureManager(textureManager.get());
+  Text::SetRenderer(renderer);
 
   // Set static references for Collider debug drawing
   Collider::SetDebugRenderer(renderer);
@@ -60,16 +66,20 @@ void Engine::Run() {
   using clock = std::chrono::high_resolution_clock;
   const std::chrono::milliseconds frameDuration(1000 / targetFPS);
 
+  auto lastTime = clock::now();
+
   while (isRunning) {
-    auto frameStart = clock::now();
+    auto now = clock::now();
+    float deltaTime = std::chrono::duration<float>(now - lastTime).count();
+    lastTime = now;
 
     HandleEvents();
-    Update(frameDuration.count() / 1000.0f);
+    Update(deltaTime);
     Render();
 
     auto frameEnd = clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-        frameEnd - frameStart);
+        frameEnd - now);
     if (elapsed < frameDuration) {
       std::this_thread::sleep_for(frameDuration - elapsed);
     }
@@ -91,11 +101,6 @@ void Engine::Update(float deltaTime) {
   // Update all game objects
   for (auto &gameObject : gameObjects) {
     gameObject->Update(deltaTime);
-  }
-
-  // Handle global input
-  if (input.IsKeyPressed(SDLK_ESCAPE)) {
-    isRunning = false;
   }
 }
 
@@ -131,5 +136,7 @@ void Engine::Shutdown() {
     SDL_DestroyWindow(window);
     window = nullptr;
   }
+  Text::CloseFont();
+  TTF_Quit();
   SDL_Quit();
 }

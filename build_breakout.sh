@@ -1,11 +1,7 @@
 #!/bin/bash
-echo "Building Pong..."
+echo "Building Breakout..."
 mkdir -p build_manual
 
-# Compile Engine source files BUT EXCLUDE src/main.cpp
-# We use examples/Pong.cpp as the main entry point
-
-# Get all source files except main.cpp
 SRC_FILES=$(ls src/*.cpp | grep -v "main.cpp")
 
 clang++ -std=c++20 \
@@ -15,11 +11,11 @@ clang++ -std=c++20 \
     -Wl,-rpath,/opt/homebrew/lib \
     -lSDL2 -lSDL2_ttf \
     $SRC_FILES \
-    examples/Pong.cpp \
-    -o build_manual/Pong
+    examples/Breakout.cpp \
+    -o build_manual/Breakout
 
 if [ $? -eq 0 ]; then
-    echo "Build successful! Run ./build_manual/Pong to play."
+    echo "Build successful! Run ./build_manual/Breakout to play."
 else
     echo "Build failed."
     exit 1
