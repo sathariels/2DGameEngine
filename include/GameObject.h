@@ -10,6 +10,9 @@
 // Forward declaration
 class Component;
 class Transform;
+class Engine;
+struct UpdateContext;
+struct RenderContext;
 
 class GameObject {
 public:
@@ -19,52 +22,64 @@ public:
     // Component management
     template<typename T, typename... Args>
     T* AddComponent(Args&&... args);
-    
+
     template<typename T>
     T* GetComponent();
-    
+
     template<typename T>
     bool HasComponent();
-    
+
     template<typename T>
     void RemoveComponent();
 
     // GameObject management
     void SetActive(bool active);
     bool IsActive() const;
-    
+
     void SetName(const std::string& name);
     const std::string& GetName() const;
-    
+
     // Transform is so common, provide direct access
     Transform* GetTransform();
-    
+
+    // The engine this object belongs to (set by Engine::AddGameObject).
+    // Lets components reach scene operations, e.g.
+    // owner->GetEngine()->Destroy(owner).
+    Engine* GetEngine() const;
+    void SetEngine(Engine* engine);
+
+    // Deferred destruction — set by Engine::Destroy, swept at end of frame.
+    void MarkForDestroy();
+    bool IsPendingDestroy() const;
+
     // Update all components
-    void Update(float deltaTime);
-    void Render();
+    void Update(const UpdateContext& ctx);
+    void Render(const RenderContext& ctx, float alpha);
 
     // Collision event dispatch (called by Physics, forwarded to all components)
     void OnCollisionEnter(GameObject* other);
     void OnCollisionStay(GameObject* other);
     void OnCollisionExit(GameObject* other);
-    
+
     // Unique ID for this GameObject
     unsigned int GetID() const;
 
 private:
     std::string name;
     bool isActive;
+    bool pendingDestroy;
     unsigned int id;
-    
+    Engine* engine;
+
     // Component storage
     std::unordered_map<std::type_index, std::unique_ptr<Component>> components;
-    
+
     // Cache transform for quick access
     Transform* transform;
-    
+
     // Static ID counter
     static unsigned int nextID;
-    
+
     void InitializeTransform();
 };
 
@@ -72,36 +87,36 @@ private:
 template<typename T, typename... Args>
 T* GameObject::AddComponent(Args&&... args) {
     static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
-    
+
     std::type_index typeIndex(typeid(T));
-    
+
     // Don't allow duplicate components of the same type
     if (components.find(typeIndex) != components.end()) {
         return static_cast<T*>(components[typeIndex].get());
     }
-    
+
     auto component = std::make_unique<T>(std::forward<Args>(args)...);
     T* componentPtr = component.get();
-    
+
     // Set the owner
     componentPtr->SetOwner(this);
-    
+
     components[typeIndex] = std::move(component);
-    
+
     return componentPtr;
 }
 
 template<typename T>
 T* GameObject::GetComponent() {
     static_assert(std::is_base_of<Component, T>::value, "T must derive from Component");
-    
+
     std::type_index typeIndex(typeid(T));
     auto it = components.find(typeIndex);
-    
+
     if (it != components.end()) {
         return static_cast<T*>(it->second.get());
     }
-    
+
     return nullptr;
 }
 

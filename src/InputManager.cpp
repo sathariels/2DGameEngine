@@ -1,15 +1,4 @@
 #include "../include/InputManager.h"
-#include <iostream>
-
-InputManager* InputManager::instance = nullptr;
-
-InputManager::InputManager() {
-    instance = this;
-}
-
-InputManager* InputManager::Get() {
-    return instance;
-}
 
 void InputManager::Update() {
     // Save the previous key state
@@ -19,29 +8,27 @@ void InputManager::Update() {
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
             case SDL_QUIT:
-                // You can set a flag here if you want to handle quitting
-                    currentKeyState[SDLK_ESCAPE] = true;  // optional shortcut
-            break;
+                quitRequested = true;
+                break;
 
             case SDL_KEYDOWN:
                 if (event.key.repeat == 0) {
-                    SDL_Keycode key = event.key.keysym.sym;
-                    currentKeyState[key] = true;
-                    std::cout << "Key pressed: " << SDL_GetKeyName(key) << std::endl;
+                    currentKeyState[event.key.keysym.sym] = true;
                 }
-            break;
-
-            case SDL_KEYUP: {
-                SDL_Keycode key = event.key.keysym.sym;
-                currentKeyState[key] = false;
-                std::cout << "Key released: " << SDL_GetKeyName(key) << std::endl;
                 break;
-            }
+
+            case SDL_KEYUP:
+                currentKeyState[event.key.keysym.sym] = false;
+                break;
 
             default:
                 break;
         }
     }
+}
+
+bool InputManager::QuitRequested() const {
+    return quitRequested;
 }
 
 bool InputManager::IsKeyPressed(SDL_Keycode key) const {

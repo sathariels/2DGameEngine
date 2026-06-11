@@ -1,12 +1,12 @@
 #include "../include/GameObject.h"
 #include "../include/Component.h"
 #include "../include/Transform.h"
-#include <iostream>
 
 unsigned int GameObject::nextID = 1;
 
 GameObject::GameObject(const std::string &name)
-    : name(name), isActive(true), id(nextID++), transform(nullptr) {
+    : name(name), isActive(true), pendingDestroy(false), id(nextID++),
+      engine(nullptr), transform(nullptr) {
 
   // Every GameObject has a Transform
   InitializeTransform();
@@ -30,7 +30,7 @@ void GameObject::InitializeTransform() {
 
 void GameObject::SetActive(bool active) { isActive = active; }
 
-bool GameObject::IsActive() const { return isActive; }
+bool GameObject::IsActive() const { return isActive && !pendingDestroy; }
 
 void GameObject::SetName(const std::string &n) { name = n; }
 
@@ -38,28 +38,36 @@ const std::string &GameObject::GetName() const { return name; }
 
 Transform *GameObject::GetTransform() { return transform; }
 
+Engine *GameObject::GetEngine() const { return engine; }
+
+void GameObject::SetEngine(Engine *e) { engine = e; }
+
+void GameObject::MarkForDestroy() { pendingDestroy = true; }
+
+bool GameObject::IsPendingDestroy() const { return pendingDestroy; }
+
 unsigned int GameObject::GetID() const { return id; }
 
-void GameObject::Update(float deltaTime) {
-  if (!isActive)
+void GameObject::Update(const UpdateContext &ctx) {
+  if (!IsActive())
     return;
 
   // Update all components
   for (auto &pair : components) {
     if (pair.second->IsActive()) {
-      pair.second->Update(deltaTime);
+      pair.second->Update(ctx);
     }
   }
 }
 
-void GameObject::Render() {
-  if (!isActive)
+void GameObject::Render(const RenderContext &ctx, float alpha) {
+  if (!IsActive())
     return;
 
   // Render all components
   for (auto &pair : components) {
     if (pair.second->IsActive()) {
-      pair.second->Render();
+      pair.second->Render(ctx, alpha);
     }
   }
 }

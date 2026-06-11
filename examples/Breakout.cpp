@@ -6,6 +6,7 @@
 #include "Sprite.h"
 #include "Text.h"
 #include "Transform.h"
+#include "UpdateContext.h"
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -43,38 +44,78 @@ static void updateHUD() {
         livesTextGO->GetComponent<Text>()->SetText("Lives: " + std::to_string(lives));
 }
 
-// ---- Forward declaration (Brick needs to know BreakoutBall exists) ----
-class BreakoutBall;
-
 // ---- Brick component --------------------------------------------------
 class Brick : public Component {
 public:
     void OnCollisionEnter(GameObject *other) override;
 };
 
+// Spawns a fresh grid of bricks. Safe to call mid-game: new objects
+// enter the scene at the next frame boundary (deferred add).
+static void spawnBricks(Engine &engine) {
+    const float gridLeft =
+        (engine.GetWindowWidth() -
+         (BRICK_COLS * BRICK_W + (BRICK_COLS - 1) * BRICK_GAP)) / 2.0f;
+    const float gridTop = 70.0f;
+
+    for (int row = 0; row < BRICK_ROWS; ++row) {
+        SDL_Color c = ROW_COLORS[row];
+        for (int col = 0; col < BRICK_COLS; ++col) {
+            float cx = gridLeft + BRICK_W / 2.0f + col * (BRICK_W + BRICK_GAP);
+            float cy = gridTop  + BRICK_H / 2.0f + row * (BRICK_H + BRICK_GAP);
+
+            auto brick = std::make_unique<GameObject>(
+                "Brick_" + std::to_string(row) + "_" + std::to_string(col));
+            brick->GetTransform()->SetPosition(cx, cy);
+            brick->AddComponent<Sprite>()->SetDimensions(BRICK_W, BRICK_H);
+            brick->GetComponent<Sprite>()->SetColor(c.r, c.g, c.b);
+            brick->AddComponent<Collider>(BRICK_W, BRICK_H, ColliderType::TRIGGER);
+            brick->AddComponent<Brick>();
+            engine.AddGameObject(std::move(brick));
+        }
+    }
+}
+
+// Destroys every brick still in the scene (used on game over)
+static void destroyRemainingBricks(Engine &engine) {
+    for (auto &obj : engine.GetGameObjects()) {
+        if (obj->HasComponent<Brick>()) {
+            engine.Destroy(obj.get());
+        }
+    }
+}
+
+static int countRemainingBricks(Engine &engine) {
+    int count = 0;
+    for (auto &obj : engine.GetGameObjects()) {
+        if (obj->IsActive() && obj->HasComponent<Brick>()) ++count;
+    }
+    return count;
+}
+
 // ---- Paddle -----------------------------------------------------------
 class BreakoutPaddle : public Component {
 public:
     explicit BreakoutPaddle(float speed) : speed(speed) {}
 
-    void Update(float deltaTime) override {
-        InputManager *input = InputManager::Get();
-        if (!input) return;
+    void Update(const UpdateContext &ctx) override {
+        if (!ctx.input) return;
 
         Rigidbody *rb = owner->GetComponent<Rigidbody>();
         if (!rb) return;
 
         rb->SetVelocity(0, 0);
-        if (input->IsKeyHeld(SDLK_LEFT) || input->IsKeyHeld(SDLK_a))
+        if (ctx.input->IsKeyHeld(SDLK_LEFT) || ctx.input->IsKeyHeld(SDLK_a))
             rb->SetVelocity(-speed, 0);
-        else if (input->IsKeyHeld(SDLK_RIGHT) || input->IsKeyHeld(SDLK_d))
+        else if (ctx.input->IsKeyHeld(SDLK_RIGHT) || ctx.input->IsKeyHeld(SDLK_d))
             rb->SetVelocity(speed, 0);
 
         // Clamp center so edges stay on screen (half-width = 45)
         Transform *t = owner->GetTransform();
         Vector2    p = t->GetPosition();
-        if (p.x < 45.0f)         t->SetPosition(45.0f, p.y);
-        else if (p.x > 755.0f)   t->SetPosition(755.0f, p.y);
+        float maxX = owner->GetEngine()->GetWindowWidth() - 45.0f;
+        if (p.x < 45.0f)      t->SetPosition(45.0f, p.y);
+        else if (p.x > maxX)  t->SetPosition(maxX, p.y);
     }
 
 private:
@@ -84,24 +125,22 @@ private:
 // ---- Ball -------------------------------------------------------------
 class BreakoutBall : public Component {
 public:
-    void Update(float deltaTime) override {
+    void Update(const UpdateContext &ctx) override {
         Vector2 pos = owner->GetTransform()->GetPosition();
 
-        if (pos.y > 620) {
+        if (pos.y > owner->GetEngine()->GetWindowHeight() + 20) {
             --lives;
             if (lives <= 0) {
                 std::cout << "GAME OVER! Final Score: " << score << "\n";
                 score = 0;
                 lives = 3;
-                // Restore all bricks
-                // (Bricks are inactive objects — re-activate them)
-                // We find them by component
+                Engine *engine = owner->GetEngine();
+                destroyRemainingBricks(*engine);
+                spawnBricks(*engine);
             }
             updateHUD();
             reset();
         }
-
-        checkWin();
     }
 
     // Called by Brick::OnCollisionEnter to bounce the ball off it
@@ -134,12 +173,6 @@ public:
         ballInPlay = true;
     }
 
-private:
-    void checkWin() {
-        // Walk the engine's scene via a shared global list isn't available here,
-        // so we check via the static bricks list below
-    }
-
     void reset() {
         ballInPlay = false;
         owner->GetTransform()->SetPosition(400, 510);
@@ -154,20 +187,21 @@ void Brick::OnCollisionEnter(GameObject *other) {
     BreakoutBall *ball = other->GetComponent<BreakoutBall>();
     if (!ball) return;
 
-    ball->bounceOff(owner); // bounce before deactivating
-    owner->SetActive(false);
+    ball->bounceOff(owner); // bounce before the brick goes away
     score += 10;
     updateHUD();
-    std::cout << "Brick! Score: " << score << "\n";
+
+    // Deferred destruction: the brick leaves the scene at the next frame
+    // boundary, and its physics pairs are purged automatically.
+    owner->GetEngine()->Destroy(owner);
 }
 
 // ---- Ball Launcher ----------------------------------------------------
 class BallLauncher : public Component {
 public:
-    void Update(float deltaTime) override {
-        if (ballInPlay) return;
-        InputManager *input = InputManager::Get();
-        if (input && input->IsKeyPressed(SDLK_SPACE)) {
+    void Update(const UpdateContext &ctx) override {
+        if (ballInPlay || !ctx.input) return;
+        if (ctx.input->IsKeyPressed(SDLK_SPACE)) {
             BreakoutBall *ball = owner->GetComponent<BreakoutBall>();
             if (ball) ball->launch();
         }
@@ -175,28 +209,21 @@ public:
 };
 
 // ---- Win checker (runs on its own GameObject so it's always active) ---
-static std::vector<GameObject *> brickList;
-
 class WinChecker : public Component {
 public:
-    void Update(float deltaTime) override {
+    void Update(const UpdateContext &ctx) override {
         if (!ballInPlay) return;
-        for (GameObject *b : brickList) {
-            if (b->IsActive()) return;
-        }
+
+        Engine *engine = owner->GetEngine();
+        if (countRemainingBricks(*engine) > 0) return;
+
         std::cout << "YOU WIN! Score: " << score << "\n";
-        // Reset all bricks and ball
-        for (GameObject *b : brickList) b->SetActive(true);
-        // Tell the ball to reset
+        spawnBricks(*engine);
+
         if (ballGO) {
             BreakoutBall *ball = ballGO->GetComponent<BreakoutBall>();
-            if (ball) {
-                ballGO->GetTransform()->SetPosition(400, 510);
-                ballGO->GetComponent<Rigidbody>()->SetVelocity(0, 0);
-                ballInPlay = false;
-                updateHUD();
-                std::cout << "Press SPACE to launch.\n";
-            }
+            if (ball) ball->reset();
+            updateHUD();
         }
     }
     GameObject *ballGO = nullptr;
@@ -204,23 +231,22 @@ public:
 
 // ---- main -------------------------------------------------------------
 int main() {
-    Engine engine;
-    if (!engine.Init()) return -1;
+    EngineConfig config;
+    config.title = "Breakout";
 
-    Text::LoadFont("/System/Library/Fonts/SFNSMono.ttf", 22);
+    Engine engine;
+    if (!engine.Init(config)) return -1;
 
     // --- HUD ---
     auto scoreTxt = std::make_unique<GameObject>("ScoreText");
     scoreTxt->GetTransform()->SetPosition(120, 20);
     scoreTxt->AddComponent<Text>("Score: 0", 22)->SetColor(255, 255, 255);
-    scoreTextGO = scoreTxt.get();
-    engine.AddGameObject(std::move(scoreTxt));
+    scoreTextGO = engine.AddGameObject(std::move(scoreTxt));
 
     auto livesTxt = std::make_unique<GameObject>("LivesText");
     livesTxt->GetTransform()->SetPosition(670, 20);
     livesTxt->AddComponent<Text>("Lives: 3", 22)->SetColor(255, 220, 100);
-    livesTextGO = livesTxt.get();
-    engine.AddGameObject(std::move(livesTxt));
+    livesTextGO = engine.AddGameObject(std::move(livesTxt));
 
     // --- Walls ---
     auto topWall = std::make_unique<GameObject>("TopWall");
@@ -239,27 +265,7 @@ int main() {
     engine.AddGameObject(std::move(rightWall));
 
     // --- Bricks (TRIGGER — physics notifies but doesn't resolve) ---
-    const float gridLeft = (800.0f - (BRICK_COLS * BRICK_W + (BRICK_COLS - 1) * BRICK_GAP)) / 2.0f;
-    const float gridTop  = 70.0f;
-
-    for (int row = 0; row < BRICK_ROWS; ++row) {
-        SDL_Color c = ROW_COLORS[row];
-        for (int col = 0; col < BRICK_COLS; ++col) {
-            float cx = gridLeft + BRICK_W / 2.0f + col * (BRICK_W + BRICK_GAP);
-            float cy = gridTop  + BRICK_H / 2.0f + row * (BRICK_H + BRICK_GAP);
-
-            auto brick = std::make_unique<GameObject>(
-                "Brick_" + std::to_string(row) + "_" + std::to_string(col));
-            brick->GetTransform()->SetPosition(cx, cy);
-            brick->AddComponent<Sprite>()->SetDimensions(BRICK_W, BRICK_H);
-            brick->GetComponent<Sprite>()->SetColor(c.r, c.g, c.b);
-            brick->AddComponent<Collider>(BRICK_W, BRICK_H, ColliderType::TRIGGER);
-            brick->AddComponent<Brick>();
-
-            brickList.push_back(brick.get());
-            engine.AddGameObject(std::move(brick));
-        }
-    }
+    spawnBricks(engine);
 
     // --- Paddle ---
     auto paddle = std::make_unique<GameObject>("Paddle");
@@ -283,8 +289,7 @@ int main() {
     ball->AddComponent<Collider>(12, 12, ColliderType::DYNAMIC)->SetBounciness(1.0f);
     ball->AddComponent<BreakoutBall>();
     ball->AddComponent<BallLauncher>();
-    GameObject *ballPtr = ball.get();
-    engine.AddGameObject(std::move(ball));
+    GameObject *ballPtr = engine.AddGameObject(std::move(ball));
 
     // --- Win checker ---
     auto checker = std::make_unique<GameObject>("WinChecker");

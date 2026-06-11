@@ -1,14 +1,12 @@
 #include "../include/Text.h"
+#include "../include/FontManager.h"
 #include "../include/GameObject.h"
 #include "../include/Transform.h"
 #include <iostream>
 
-SDL_Renderer *Text::renderer = nullptr;
-TTF_Font     *Text::font     = nullptr;
-
 Text::Text(const std::string &text, int fontSize)
     : text(text), fontSize(fontSize), dirty(true),
-      texture(nullptr), texW(0), texH(0) {
+      texture(nullptr), lastFont(nullptr), texW(0), texH(0) {
     color = {255, 255, 255, 255};
 }
 
@@ -32,32 +30,19 @@ void Text::SetColor(Uint8 r, Uint8 g, Uint8 b) {
     dirty = true;
 }
 
-void Text::SetRenderer(SDL_Renderer *r) { renderer = r; }
-
-bool Text::LoadFont(const std::string &path, int size) {
-    CloseFont();
-    font = TTF_OpenFont(path.c_str(), size);
-    if (!font) {
-        std::cerr << "TTF_OpenFont error (" << path << "): " << TTF_GetError() << "\n";
-        return false;
-    }
-    return true;
+void Text::SetFontSize(int size) {
+    if (fontSize == size) return;
+    fontSize = size;
+    dirty    = true;
 }
 
-void Text::CloseFont() {
-    if (font) {
-        TTF_CloseFont(font);
-        font = nullptr;
-    }
-}
-
-void Text::rebuildTexture() {
-    if (!font || !renderer || text.empty()) return;
-
+void Text::rebuildTexture(const RenderContext &ctx, TTF_Font *font) {
     if (texture) {
         SDL_DestroyTexture(texture);
         texture = nullptr;
     }
+
+    if (!font || text.empty()) return;
 
     SDL_Surface *surface = TTF_RenderText_Blended(font, text.c_str(), color);
     if (!surface) {
@@ -65,29 +50,31 @@ void Text::rebuildTexture() {
         return;
     }
 
-    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    texture = SDL_CreateTextureFromSurface(ctx.renderer, surface);
     texW    = surface->w;
     texH    = surface->h;
     SDL_FreeSurface(surface);
 }
 
-void Text::Render() {
-    if (!IsActive() || !renderer || !owner) return;
+void Text::Render(const RenderContext &ctx, float alpha) {
+    if (!IsActive() || !ctx.renderer || !ctx.fonts || !owner) return;
 
-    if (dirty || !texture) {
-        rebuildTexture();
-        dirty = false;
+    TTF_Font *font = ctx.fonts->GetFont(fontSize);
+    if (dirty || !texture || font != lastFont) {
+        rebuildTexture(ctx, font);
+        lastFont = font;
+        dirty    = false;
     }
     if (!texture) return;
 
     Transform *t = owner->GetTransform();
     if (!t) return;
 
-    Vector2  pos = t->GetPosition();
+    Vector2  pos = t->GetInterpolatedPosition(alpha);
     SDL_Rect dst = {
         (int)(pos.x - texW / 2.0f),
         (int)(pos.y - texH / 2.0f),
         texW, texH
     };
-    SDL_RenderCopy(renderer, texture, nullptr, &dst);
+    SDL_RenderCopy(ctx.renderer, texture, nullptr, &dst);
 }

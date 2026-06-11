@@ -1,14 +1,17 @@
 #include "../include/Transform.h"
 
 Transform::Transform()
-    : position(0.0f, 0.0f), rotation(0.0f), scale(1.0f, 1.0f) {}
+    : position(0.0f, 0.0f), previousPosition(0.0f, 0.0f), rotation(0.0f),
+      scale(1.0f, 1.0f) {}
 
 void Transform::SetPosition(float x, float y) {
-  position.x = x;
-  position.y = y;
+  SetPosition(Vector2(x, y));
 }
 
-void Transform::SetPosition(const Vector2 &pos) { position = pos; }
+void Transform::SetPosition(const Vector2 &pos) {
+  position = pos;
+  previousPosition = pos; // teleport — don't interpolate across it
+}
 
 Vector2 Transform::GetPosition() const { return position; }
 
@@ -32,12 +35,23 @@ void Transform::Translate(float x, float y) {
 
 void Transform::Rotate(float angle) { rotation += angle; }
 
+void Transform::CapturePreviousPosition() { previousPosition = position; }
+
+Vector2 Transform::GetInterpolatedPosition(float alpha) const {
+  return Vector2::Lerp(previousPosition, position, alpha);
+}
+
 SDL_Rect Transform::ToSDLRect(int width, int height) const {
+  return ToSDLRect(width, height, position);
+}
+
+SDL_Rect Transform::ToSDLRect(int width, int height,
+                              const Vector2 &pos) const {
   SDL_Rect rect;
   rect.h = static_cast<int>(height * scale.y);
   rect.w = static_cast<int>(width * scale.x);
   // Center the rect on the position
-  rect.x = static_cast<int>(position.x) - (rect.w / 2);
-  rect.y = static_cast<int>(position.y) - (rect.h / 2);
+  rect.x = static_cast<int>(pos.x) - (rect.w / 2);
+  rect.y = static_cast<int>(pos.y) - (rect.h / 2);
   return rect;
 }

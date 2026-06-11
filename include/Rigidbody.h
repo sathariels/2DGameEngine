@@ -2,14 +2,17 @@
 #define RIGIDBODY_H
 
 #include "Component.h"
-#include "Transform.h" // For Vector2
+#include "Vector2.h"
 
 class Rigidbody : public Component {
 public:
   Rigidbody();
   ~Rigidbody() override = default;
 
-  void Update(float deltaTime) override;
+  // Integrates accumulated forces into velocity and applies drag.
+  // Called by the Physics system once per frame, before position
+  // integration — game code should not call this directly.
+  void Integrate(float deltaTime);
 
   // Forces
   void AddForce(const Vector2 &force);

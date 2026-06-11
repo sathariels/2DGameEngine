@@ -6,22 +6,21 @@
 
 class InputManager {
 public:
-    InputManager();
+    InputManager() = default;
     ~InputManager() = default;
-
-    // Global accessor — valid after Engine::Init()
-    static InputManager* Get();
 
     void Update();  // Call once per frame
     bool IsKeyPressed(SDL_Keycode key) const;
     bool IsKeyReleased(SDL_Keycode key) const;
     bool IsKeyHeld(SDL_Keycode key) const;
 
+    // True once the window has been closed (SDL_QUIT)
+    bool QuitRequested() const;
+
 private:
     std::unordered_map<SDL_Keycode, bool> currentKeyState;
     std::unordered_map<SDL_Keycode, bool> previousKeyState;
-
-    static InputManager* instance;
+    bool quitRequested = false;
 };
 
 #endif

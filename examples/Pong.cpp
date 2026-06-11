@@ -5,6 +5,7 @@
 #include "Sprite.h"
 #include "Text.h"
 #include "Transform.h"
+#include "UpdateContext.h"
 #include <iostream>
 #include <random>
 #include <string>
@@ -27,16 +28,15 @@ public:
     PaddleController(SDL_Keycode upKey, SDL_Keycode downKey, float speed)
         : upKey(upKey), downKey(downKey), speed(speed) {}
 
-    void Update(float deltaTime) override {
-        InputManager *input = InputManager::Get();
-        if (!input) return;
+    void Update(const UpdateContext &ctx) override {
+        if (!ctx.input) return;
 
         Rigidbody *rb = owner->GetComponent<Rigidbody>();
         if (!rb) return;
 
         rb->SetVelocity(0, 0);
-        if (input->IsKeyHeld(upKey))   rb->SetVelocity(0, -speed);
-        else if (input->IsKeyHeld(downKey)) rb->SetVelocity(0, speed);
+        if (ctx.input->IsKeyHeld(upKey))        rb->SetVelocity(0, -speed);
+        else if (ctx.input->IsKeyHeld(downKey)) rb->SetVelocity(0, speed);
     }
 
 private:
@@ -47,7 +47,7 @@ private:
 // ---- Ball Logic -------------------------------------------------------
 class BallLogic : public Component {
 public:
-    void Update(float deltaTime) override {
+    void Update(const UpdateContext &ctx) override {
         Transform *t   = owner->GetTransform();
         Vector2    pos = t->GetPosition();
 
@@ -80,10 +80,11 @@ public:
 
 // ---- main -------------------------------------------------------------
 int main() {
-    Engine engine;
-    if (!engine.Init()) return -1;
+    EngineConfig config;
+    config.title = "Pong";
 
-    Text::LoadFont("/System/Library/Fonts/SFNSMono.ttf", 52);
+    Engine engine;
+    if (!engine.Init(config)) return -1;
 
     // --- Score displays ---
     auto p1Text = std::make_unique<GameObject>("P1Score");

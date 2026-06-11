@@ -1,18 +1,21 @@
 #include "../include/Engine.h"
-#include "../include/Collider.h"
 #include "../include/GameObject.h"
-#include "../include/InputManager.h"
-#include "../include/Sprite.h"
-#include "../include/Text.h"
+#include "../include/RenderContext.h"
+#include "../include/UpdateContext.h"
 #include <SDL2/SDL_ttf.h>
+#include <algorithm>
 #include <iostream>
 #include <thread>
 
-Engine::Engine() : window(nullptr), renderer(nullptr), isRunning(false) {}
+Engine::Engine()
+    : window(nullptr), renderer(nullptr), isRunning(false),
+      hasShutdown(false) {}
 
 Engine::~Engine() { Shutdown(); }
 
-bool Engine::Init() {
+bool Engine::Init(const EngineConfig &cfg) {
+  config = cfg;
+
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
     return false;
@@ -23,9 +26,9 @@ bool Engine::Init() {
     return false;
   }
 
-  window = SDL_CreateWindow("2D Game Engine with Sprites",
-                            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                            windowWidth, windowHeight, SDL_WINDOW_SHOWN);
+  window = SDL_CreateWindow(config.title.c_str(), SDL_WINDOWPOS_CENTERED,
+                            SDL_WINDOWPOS_CENTERED, config.windowWidth,
+                            config.windowHeight, SDL_WINDOW_SHOWN);
 
   if (!window) {
     std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
@@ -38,44 +41,100 @@ bool Engine::Init() {
     return false;
   }
 
-  // Initialize texture manager
+  // Engine-owned systems — handed to components via Update/RenderContext
   textureManager = std::make_unique<TextureManager>(renderer);
-
-  // Initialize physics system
   physics = std::make_unique<Physics>();
 
-  // Set static references for Sprite and Text
-  Sprite::SetRenderer(renderer);
-  Sprite::SetTextureManager(textureManager.get());
-  Text::SetRenderer(renderer);
-
-  // Set static references for Collider debug drawing
-  Collider::SetDebugRenderer(renderer);
-  Collider::SetGlobalDebugDraw(true); // Enable debug visualization
+  fontManager = std::make_unique<FontManager>();
+  if (!config.fontPath.empty()) {
+    fontManager->SetFontPath(config.fontPath);
+  } else {
+    fontManager->UseDefaultSystemFont();
+  }
 
   isRunning = true;
 
   return true;
 }
 
-void Engine::AddGameObject(std::unique_ptr<GameObject> gameObject) {
-  gameObjects.push_back(std::move(gameObject));
+GameObject *Engine::AddGameObject(std::unique_ptr<GameObject> gameObject) {
+  GameObject *ptr = gameObject.get();
+  gameObject->SetEngine(this);
+  pendingAdd.push_back(std::move(gameObject));
+  return ptr;
+}
+
+void Engine::Destroy(GameObject *gameObject) {
+  if (gameObject) {
+    gameObject->MarkForDestroy();
+  }
+}
+
+GameObject *Engine::FindGameObject(const std::string &name) {
+  for (auto &obj : gameObjects) {
+    if (!obj->IsPendingDestroy() && obj->GetName() == name) return obj.get();
+  }
+  for (auto &obj : pendingAdd) {
+    if (!obj->IsPendingDestroy() && obj->GetName() == name) return obj.get();
+  }
+  return nullptr;
+}
+
+void Engine::FlushPendingChanges() {
+  // Sweep destroyed objects: purge their physics pairs first (fires
+  // OnCollisionExit on partners) so no dangling pointers survive
+  for (auto &obj : gameObjects) {
+    if (obj->IsPendingDestroy()) {
+      physics->RemoveGameObject(obj.get());
+    }
+  }
+  gameObjects.erase(
+      std::remove_if(gameObjects.begin(), gameObjects.end(),
+                     [](const std::unique_ptr<GameObject> &obj) {
+                       return obj->IsPendingDestroy();
+                     }),
+      gameObjects.end());
+
+  // Then bring in objects spawned since the last flush
+  for (auto &obj : pendingAdd) {
+    gameObjects.push_back(std::move(obj));
+  }
+  pendingAdd.clear();
 }
 
 void Engine::Run() {
   using clock = std::chrono::high_resolution_clock;
-  const std::chrono::milliseconds frameDuration(1000 / targetFPS);
+  const std::chrono::milliseconds frameDuration(1000 / config.targetFPS);
+  const float fixedDt = config.fixedTimeStep;
 
   auto lastTime = clock::now();
+  float accumulator = 0.0f;
 
   while (isRunning) {
     auto now = clock::now();
-    float deltaTime = std::chrono::duration<float>(now - lastTime).count();
+    float frameTime = std::chrono::duration<float>(now - lastTime).count();
     lastTime = now;
 
+    frameTime = std::min(frameTime, config.maxDeltaTime);
+
+    // Apply last frame's spawns/destroys at the frame boundary
+    FlushPendingChanges();
+
     HandleEvents();
-    Update(deltaTime);
-    Render();
+
+    // Physics advances in fixed-size steps (deterministic, stable at any
+    // render rate); whatever time is left over stays in the accumulator
+    // and the renderer interpolates it. See Fiedler, "Fix Your Timestep".
+    accumulator += frameTime;
+    while (accumulator >= fixedDt) {
+      physics->Update(fixedDt, gameObjects);
+      accumulator -= fixedDt;
+    }
+
+    // Game logic runs once per rendered frame with real frame time
+    Update(frameTime);
+
+    Render(accumulator / fixedDt);
 
     auto frameEnd = clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -89,30 +148,37 @@ void Engine::Run() {
 void Engine::HandleEvents() {
   input.Update();
 
-  if (input.IsKeyPressed(SDLK_ESCAPE)) {
+  bool quitKeyHit = (config.quitKey != SDLK_UNKNOWN) &&
+                    input.IsKeyPressed(config.quitKey);
+  if (input.QuitRequested() || quitKeyHit) {
     isRunning = false;
   }
 }
 
 void Engine::Update(float deltaTime) {
-  // Update physics system
-  physics->Update(deltaTime, gameObjects);
+  UpdateContext ctx;
+  ctx.deltaTime = deltaTime;
+  ctx.input = &input;
 
-  // Update all game objects
   for (auto &gameObject : gameObjects) {
-    gameObject->Update(deltaTime);
+    gameObject->Update(ctx);
   }
 }
 
-void Engine::Render() {
-  // Set background color
-  SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);
+void Engine::Render(float alpha) {
+  const SDL_Color &bg = config.backgroundColor;
+  SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
   SDL_RenderClear(renderer);
 
-  // Render all game objects (they now use their Sprite components)
+  RenderContext ctx;
+  ctx.renderer = renderer;
+  ctx.textures = textureManager.get();
+  ctx.fonts = fontManager.get();
+  ctx.debugDrawColliders = config.debugDrawColliders;
+
   for (auto &gameObject : gameObjects) {
     if (gameObject->IsActive()) {
-      gameObject->Render(); // This will call Sprite::Render() for each object
+      gameObject->Render(ctx, alpha);
     }
   }
 
@@ -120,11 +186,19 @@ void Engine::Render() {
 }
 
 void Engine::Shutdown() {
+  // Safe to call multiple times (the destructor also calls it)
+  if (hasShutdown)
+    return;
+  hasShutdown = true;
+  isRunning = false;
+
   // Clear game objects before shutting down
+  pendingAdd.clear();
   gameObjects.clear();
 
-  // Clean up systems
+  // Clean up systems (fonts must close before TTF_Quit)
   physics.reset();
+  fontManager.reset();
   textureManager.reset();
 
   if (renderer) {
@@ -136,7 +210,6 @@ void Engine::Shutdown() {
     SDL_DestroyWindow(window);
     window = nullptr;
   }
-  Text::CloseFont();
   TTF_Quit();
   SDL_Quit();
 }

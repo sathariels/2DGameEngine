@@ -1,22 +1,10 @@
 #!/bin/bash
-echo "Building Breakout..."
-mkdir -p build_manual
+# Builds just the Breakout example via CMake.
+set -e
+cd "$(dirname "$0")"
 
-SRC_FILES=$(ls src/*.cpp | grep -v "main.cpp")
+cmake -S . -B build
+cmake --build build --target Breakout
 
-clang++ -std=c++20 \
-    -I include \
-    -I /opt/homebrew/include \
-    -L /opt/homebrew/lib \
-    -Wl,-rpath,/opt/homebrew/lib \
-    -lSDL2 -lSDL2_ttf \
-    $SRC_FILES \
-    examples/Breakout.cpp \
-    -o build_manual/Breakout
-
-if [ $? -eq 0 ]; then
-    echo "Build successful! Run ./build_manual/Breakout to play."
-else
-    echo "Build failed."
-    exit 1
-fi
+echo ""
+echo "Build successful! Run ./build/Breakout to play."

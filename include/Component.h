@@ -2,15 +2,18 @@
 #define COMPONENT_H
 
 class GameObject;
+struct UpdateContext;
+struct RenderContext;
 
 class Component {
 public:
     Component();
     virtual ~Component();
 
-    // Core lifecycle methods
-    virtual void Update(float deltaTime) {}
-    virtual void Render() {}
+    // Core lifecycle methods. Engine systems (input, renderer, fonts,
+    // textures) arrive through the contexts — no globals.
+    virtual void Update(const UpdateContext& ctx) {}
+    virtual void Render(const RenderContext& ctx, float alpha) {}
 
     // Collision callbacks (fired by Physics system)
     virtual void OnCollisionEnter(GameObject* other) {}

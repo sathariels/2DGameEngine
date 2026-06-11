@@ -2,6 +2,7 @@
 #define COLLIDER_H
 
 #include "Component.h"
+#include "RenderContext.h"
 #include <SDL2/SDL.h>
 
 enum class ColliderType {
@@ -24,19 +25,15 @@ public:
   void SetBounciness(float b);
   float GetBounciness() const;
 
-  // Setup for debug drawing
-  static void SetDebugRenderer(SDL_Renderer *renderer);
-  static void SetGlobalDebugDraw(bool draw);
-  void Render() override;
+  // Draws the collider outline when ctx.debugDrawColliders is set
+  // (EngineConfig::debugDrawColliders)
+  void Render(const RenderContext &ctx, float alpha) override;
 
 private:
   int width;
   int height;
   ColliderType type;
   float bounciness; // 0.0 = no bounce, 1.0 = perfect energy conservation
-
-  static SDL_Renderer *debugRenderer;
-  static bool enableDebugDraw;
 };
 
 #endif // COLLIDER_H
